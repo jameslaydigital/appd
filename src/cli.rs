@@ -169,10 +169,22 @@ pub struct LogArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum SkillsAction {
-    /// Write .agents/skills/appd/SKILL.md into a project.
+    /// Write the appd skill into a project (default: .agents/skills).
     Install {
         /// Project directory. Defaults to the current directory.
         #[arg(default_value = ".", value_name = "DIR")]
         dir: std::path::PathBuf,
+
+        /// Install for Claude Code: <DIR>/.claude/skills/appd/SKILL.md
+        #[arg(long)]
+        claude: bool,
+
+        /// Install for Codex: <DIR>/.codex/skills/appd/SKILL.md
+        #[arg(long)]
+        codex: bool,
+
+        /// Install for OpenCode: <DIR>/.opencode/skills/appd/SKILL.md
+        #[arg(long)]
+        opencode: bool,
     },
 }

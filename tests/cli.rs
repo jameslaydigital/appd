@@ -219,6 +219,31 @@ fn skills_install_writes_the_editor_skill() {
 }
 
 #[test]
+fn skills_install_supports_agent_flavors() {
+    let fixture = Fixture::bare();
+    let project = fixture.root.path().join("notes");
+    fs::create_dir_all(&project).unwrap();
+
+    let output = fixture.run(&[
+        "skills",
+        "install",
+        project.to_str().unwrap(),
+        "--claude",
+        "--codex",
+        "--opencode",
+    ]);
+    assert!(output.status.success(), "{}", stderr(&output));
+
+    for path in [
+        ".claude/skills/appd/SKILL.md",
+        ".codex/skills/appd/SKILL.md",
+        ".opencode/skills/appd/SKILL.md",
+    ] {
+        assert!(project.join(path).is_file(), "missing {path}");
+    }
+}
+
+#[test]
 fn install_app_copies_the_config_under_the_project_name() {
     let fixture = Fixture::bare();
     let project = fixture.root.path().join("sundial");

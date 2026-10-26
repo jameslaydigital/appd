@@ -105,7 +105,7 @@ One practical note: `~/.cargo/bin` is usually not on `sudo`'s `secure_path`, and
 If you have a release tarball, its `install.sh` does the whole job:
 
 ```bash
-sudo ./appd-0.2.6-x86_64-unknown-linux-musl/install.sh
+sudo ./appd-0.2.7-x86_64-unknown-linux-musl/install.sh
 ```
 
 With a bare binary, let it install itself:
@@ -175,7 +175,7 @@ directories. Per-app teardown is `sudo appd remove <app>`.
 
 ```bash
 make dist
-# target/dist/appd-0.2.6-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+# target/dist/appd-0.2.7-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
 ```
 
 `make dist` builds a **static musl binary** for `TARGET` (default
@@ -215,6 +215,7 @@ definitions, so they cannot drift from the CLI.
 appd init                         # create /etc/appd without installing the binary (optional)
 appd install-app .                # copy ./.appd.conf to /etc/appd/<project>.json
 appd skills install               # write .agents/skills/appd/SKILL.md for editor agents
+appd skills install --claude      # or --codex / --opencode for their layouts
 
 appd apply all                    # render /etc/appd/*.json into systemd units, then daemon-reload
 appd apply all --prune            # also stop, disable, and delete managed units whose config is gone

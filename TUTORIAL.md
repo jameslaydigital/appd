@@ -714,7 +714,7 @@ left behind by a deleted config, it shows up as an orphan and is cleaned with
 | Command | Does |
 | --- | --- |
 | `appd install-app DIR` | copy `DIR/.appd.conf` to `/etc/appd/<project>.json` |
-| `appd skills install [DIR]` | write `.agents/skills/appd/SKILL.md` for editor agents |
+| `appd skills install [DIR] [--claude|--codex|--opencode]` | write `.agents/skills/appd/SKILL.md` for editor agents |
 | `appd init` | create `/etc/appd` without installing; idempotent |
 | `appd install [--prefix DIR] [--uninstall]` | install the binary, man page and completions |
 | `appd apply [APP…\|all] [--prune] [--yes]` | render units, install, `daemon-reload` |

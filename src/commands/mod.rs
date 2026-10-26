@@ -28,7 +28,12 @@ pub fn run(cli: Cli) -> Result<i32> {
             uninstall,
         }) => install::run(&prefix, &destdir.unwrap_or_default(), uninstall),
         Some(Command::Skills { action }) => match action {
-            crate::cli::SkillsAction::Install { dir } => skills::install(&dir),
+            crate::cli::SkillsAction::Install {
+                dir,
+                claude,
+                codex,
+                opencode,
+            } => skills::install(&dir, claude, codex, opencode),
         },
         Some(Command::InstallApp { path, name, apply }) => {
             install_app::run(&path, name.as_deref(), apply)

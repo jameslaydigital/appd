@@ -5,7 +5,7 @@
 - Repo: <https://github.com/jameslaydigital/appd>
 - Crate: <https://crates.io/crates/appd> (`cargo install --locked appd`)
 - Site: <https://jameslaydigital.github.io/appd/>
-- Current release: **0.2.6**
+- Current release: **0.2.7**
 - Previous name: `appctl`; GitHub redirects the old repo URL. Do not reintroduce the old prefix.
 
 ## What it is
@@ -63,7 +63,8 @@ tests/cli.rs           end-to-end CLI tests via the real binary
 - `appd init` — create `/etc/appd` without installing; optional since `install` does it.
 - `appd install-app [DIR] [--name NAME] [--apply]` — find `DIR/.appd.conf`, validate, copy to
   `/etc/appd/<project>.json` at 0600. Name defaults to the project directory name.
-- `appd skills install [DIR]` — write `.agents/skills/appd/SKILL.md` into a project.
+- `appd skills install [DIR] [--claude|--codex|--opencode]` — write the skill into a project.
+  No flag: `.agents/skills`; flags: `.claude/skills`, `.codex/skills`, `.opencode/skills` (combinable).
 - `appd apply [APP…|all] [--prune] [--yes]` — render units, install, `daemon-reload`. No restart.
 - `appd diff [APP…|all]` — installed unit vs generated; exit 1 on drift.
 - `appd doctor` — read-only preflight; exit 1 on problems.
@@ -127,7 +128,7 @@ Defaults: `args=[]`, `restart=on-failure`, `working_directory=/var/lib/appd-<app
 ## Development
 
 ```bash
-cargo test                 # 68 tests: unit + CLI end-to-end
+cargo test                 # 69 tests: unit + CLI end-to-end
 cargo build --release
 make dist                  # static musl tarball + checksum in target/dist/
 ```
@@ -163,5 +164,5 @@ colors/fonts must go through those tokens. The palette canvas and copy buttons a
 - `after` / `requires` for app-to-app ordering.
 - AppArmor profile generation (currently attaches an existing profile by name).
 - Daemon mode (planned as a mode of the same binary).
-- Maybe `install-app --apply` exists; `skills install` targets `.agents/skills` only.
+- Maybe `install-app --apply` exists; `skills install` supports `.agents`, `.claude`, `.codex`, `.opencode` layouts.
 - Crate page `homepage` can point at the site in a future release (repository is set).

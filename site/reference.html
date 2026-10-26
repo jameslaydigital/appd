@@ -68,7 +68,7 @@
           <tbody>
             <tr><td data-label="Command"><code>appd install</code></td><td data-label="Does">Copy this binary to <code>/usr/local/bin</code>, write the man page and completions, and create <code>/etc/appd</code>. <code>--prefix</code>, <code>--destdir</code>, <code>--uninstall</code>.</td></tr>
             <tr><td data-label="Command"><code>appd install-app DIR</code></td><td data-label="Does">Find <code>DIR/.appd.conf</code>, validate it, and install it as <code>/etc/appd/&lt;project&gt;.json</code>. <code>--name</code>, <code>--apply</code>.</td></tr>
-            <tr><td data-label="Command"><code>appd skills install [DIR]</code></td><td data-label="Does">Write <code>.agents/skills/appd/SKILL.md</code> into a project so an editor agent can write configs.</td></tr>
+            <tr><td data-label="Command"><code>appd skills install [DIR]</code></td><td data-label="Does">Write <code>.agents/skills/appd/SKILL.md</code> into a project; <code>--claude</code>, <code>--codex</code>, <code>--opencode</code> select their layouts.</td></tr>
             <tr><td data-label="Command"><code>appd init</code></td><td data-label="Does">Create <code>/etc/appd</code> without installing the binary. Idempotent; no root needed if it already exists.</td></tr>
             <tr><td data-label="Command"><code>appd apply [APP…|all]</code></td><td data-label="Does">Render configs, write units, <code>daemon-reload</code>. <code>--prune</code> removes orphaned units; <code>--yes</code> skips the all-confirmation.</td></tr>
             <tr><td data-label="Command"><code>appd diff [APP…|all]</code></td><td data-label="Does">Show how installed units differ from their configs. Exits 1 on drift.</td></tr>
@@ -242,7 +242,7 @@
   </main>
 
   <footer class="foot shell">
-    <p>appd 0.2.6 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p>appd 0.2.7 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
     <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
   </footer>

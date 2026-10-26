@@ -71,7 +71,7 @@ sudo "$(command -v appd)" install</code></pre>
       </div>
       <p>The second command copies the binary to <code>/usr/local/bin</code>, writes the man page and completions, and creates <code>/etc/appd</code> with mode <code>0755</code>. Config files stay <code>0600</code> because they may hold secrets.</p>
       <h3>From a project directory</h3>
-      <p>Keep the config in the repository as <code>.appd.conf</code>. <code>appd skills install</code> writes the editor skill; <code>sudo appd install-app .</code> validates the file and copies it to <code>/etc/appd/&lt;project&gt;.json</code> under the directory name.</p>
+      <p>Keep the config in the repository as <code>.appd.conf</code>. <code>appd skills install</code> writes the generic <code>.agents/skills</code> layout, or add <code>--claude</code>, <code>--codex</code>, or <code>--opencode</code>; <code>sudo appd install-app .</code> validates the file and copies it to <code>/etc/appd/&lt;project&gt;.json</code> under the directory name.</p>
     </section>
 
     <section aria-labelledby="app">
@@ -272,7 +272,7 @@ sudo appd restart sundial</code></pre>
   </main>
 
   <footer class="foot shell">
-    <p>appd 0.2.6 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p>appd 0.2.7 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
     <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
   </footer>
