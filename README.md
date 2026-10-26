@@ -49,6 +49,15 @@ This is the Rust-native route: it downloads the published crate, builds it, and 
 the build matches what was released. No daemon, no service to enable — the binary is the whole
 program.
 
+appd is a system tool: `init`, `apply`, `remove` and the service verbs need root. A cargo install
+lands in `~/.cargo/bin`, which `sudo` does not search, so either promote it once:
+
+```bash
+sudo install -Dm755 "$(command -v appd)" /usr/local/bin/appd
+```
+
+or invoke it by full path: `sudo "$(command -v appd)" init`.
+
 ### From a source checkout
 
 ```bash
@@ -146,7 +155,7 @@ directories. Per-app teardown is `sudo appd remove <app>`.
 
 ```bash
 make dist
-# target/dist/appd-0.2.0-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+# target/dist/appd-0.2.1-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
 ```
 
 `make dist` builds a **static musl binary** for `TARGET` (default
@@ -183,7 +192,7 @@ definitions, so they cannot drift from the CLI.
 ## Usage
 
 ```bash
-appd init                         # create /etc/appd, then exit
+sudo appd init                    # create /etc/appd, then exit
 appd apply all                    # render /etc/appd/*.json into systemd units, then daemon-reload
 appd apply all --prune            # also stop, disable, and delete managed units whose config is gone
 appd apply goal-tracker           # same, for a single app

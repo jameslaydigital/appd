@@ -52,6 +52,15 @@ pub fn run(cli: Cli) -> Result<i32> {
     }
 }
 
+/// The command a user should run to get root, with the absolute path to this binary:
+/// `cargo install` puts it in `~/.cargo/bin`, which sudo's secure_path does not search.
+pub fn root_hint() -> String {
+    let exe = std::env::current_exe()
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|_| "appd".to_string());
+    format!("sudo {exe}")
+}
+
 /// Confirm before touching every app. Non-interactive callers must pass `--yes`; they are never
 /// assumed to have consented.
 pub fn confirm(action: &str, yes: bool) -> Result<bool> {

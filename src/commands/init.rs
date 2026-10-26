@@ -5,21 +5,27 @@ use std::os::unix::fs::PermissionsExt;
 
 use anyhow::{Result, bail};
 
-use crate::paths;
-use crate::systemd;
+use crate::commands::root_hint;
+use crate::{paths, systemd};
 
 pub fn run() -> Result<i32> {
     let dir = paths::config_dir();
-
-    if paths::manages_system_config() && !systemd::is_root() {
-        bail!("`init` creates /etc/appd; run it as root");
-    }
 
     if dir.exists() && !dir.is_dir() {
         bail!("{} exists but is not a directory", dir.display());
     }
 
-    if paths::ensure_config_dir()? {
+    if !dir.exists() {
+        if paths::manages_system_config() && !systemd::is_root() {
+            // No point failing with "run as root" and no command: a cargo-installed appd is not
+            // on sudo's PATH, so spell out the working invocation.
+            bail!(
+                "creating {} needs root; run:\n  {} init",
+                dir.display(),
+                root_hint()
+            );
+        }
+        paths::ensure_config_dir()?;
         println!("Created {} (mode 0755).", dir.display());
         println!();
         println!("Next:");
@@ -29,19 +35,21 @@ pub fn run() -> Result<i32> {
         println!("  4. sudo appd enable <app> && sudo appd start <app>");
         println!();
         println!("A worked example is in TUTORIAL.md.");
-    } else {
-        let mode = fs::metadata(&dir)
-            .map(|meta| meta.permissions().mode() & 0o777)
-            .unwrap_or(0o755);
-        println!("{} already exists (mode {mode:04o}).", dir.display());
+        return Ok(0);
+    }
 
-        // Listing the directory is what lets non-root `status` show app names.
-        if mode & 0o055 != 0o055 {
-            println!(
-                "note: non-root `appd status` cannot list apps at this mode; chmod 755 {}",
-                dir.display()
-            );
-        }
+    // Already there: this is a status check, and needs no privileges.
+    let mode = fs::metadata(&dir)
+        .map(|meta| meta.permissions().mode() & 0o777)
+        .unwrap_or(0o755);
+    println!("{} already exists (mode {mode:04o}).", dir.display());
+
+    // Listing the directory is what lets non-root `status` show app names.
+    if mode & 0o055 != 0o055 {
+        println!(
+            "note: non-root `appd status` cannot list apps at this mode; chmod 755 {}",
+            dir.display()
+        );
     }
 
     Ok(0)

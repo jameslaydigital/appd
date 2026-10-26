@@ -14,7 +14,10 @@ use crate::{naming, paths, registry, systemd, unit};
 pub fn run(app_name: &str, keep_user: bool, keep_state: bool, yes: bool) -> Result<i32> {
     let managing = paths::manages_system_units();
     if managing && !systemd::is_root() {
-        bail!("`remove` deletes units, configs and system accounts; run it as root");
+        bail!(
+            "`remove` deletes units, configs and system accounts; run:\n  {} remove <app>",
+            crate::commands::root_hint()
+        );
     }
 
     let registry = registry::load()?;

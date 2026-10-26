@@ -241,11 +241,13 @@ fn service_verbs_refuse_to_run_unprivileged() {
     let output = fixture.run(&["restart", "demo"]);
 
     assert!(!output.status.success());
+    let text = stderr(&output);
+    assert!(text.contains("requires root"), "{text}");
     assert!(
-        stderr(&output).contains("requires root"),
-        "{}",
-        stderr(&output)
+        text.contains(env!("CARGO_BIN_EXE_appd")),
+        "the hint should name the binary's actual path: {text}"
     );
+    assert!(text.contains("sudo "), "{text}");
 }
 
 #[test]
