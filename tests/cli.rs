@@ -162,6 +162,38 @@ fn doctor_reports_a_missing_config_directory() {
 }
 
 #[test]
+fn install_and_uninstall_into_a_prefix() {
+    let fixture = Fixture::bare();
+    let prefix = fixture.root.path().join("prefix");
+    let prefix_arg = prefix.to_str().unwrap();
+
+    let install = fixture.run(&["install", "--prefix", prefix_arg]);
+    assert!(install.status.success(), "{}", stderr(&install));
+
+    let bin = prefix.join("bin/appd");
+    let man = prefix.join("share/man/man1/appd.1");
+    assert!(bin.is_file(), "binary missing");
+    assert!(man.is_file(), "man page missing");
+    assert!(
+        prefix
+            .join("share/bash-completion/completions/appd")
+            .is_file(),
+        "bash completion missing"
+    );
+    assert!(fs::read_to_string(&man).unwrap().contains(".TH appd"));
+
+    // The copied binary runs.
+    let version = Command::new(&bin).arg("--version").output().unwrap();
+    assert!(version.status.success());
+    assert!(String::from_utf8_lossy(&version.stdout).contains("appd "));
+
+    let uninstall = fixture.run(&["install", "--prefix", prefix_arg, "--uninstall"]);
+    assert!(uninstall.status.success(), "{}", stderr(&uninstall));
+    assert!(!bin.exists(), "binary should be removed");
+    assert!(!man.exists(), "man page should be removed");
+}
+
+#[test]
 fn one_bad_config_writes_nothing() {
     let fixture = Fixture::new(&[
         ("good", r#"{ "exec": "/bin/true" }"#),
@@ -248,8 +280,8 @@ fn service_verbs_refuse_to_run_unprivileged() {
         "the hint should name the binary's actual path: {text}"
     );
     assert!(
-        text.contains("sudo install -Dm755"),
-        "a cargo-installed binary should offer a system-wide install: {text}"
+        text.contains(&format!("{} install", env!("CARGO_BIN_EXE_appd"))),
+        "a cargo-installed binary should offer self-install: {text}"
     );
 }
 

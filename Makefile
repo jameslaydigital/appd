@@ -9,11 +9,6 @@ TARGET ?= x86_64-unknown-linux-musl
 DIST_NAME := appd-$(VERSION)-$(TARGET)
 DIST_DIR := $(DIST)/$(DIST_NAME)
 TARGET_BIN := target/$(TARGET)/release/appd
-BINDIR := $(PREFIX)/bin
-MANDIR := $(PREFIX)/share/man/man1
-BASH_COMPLETION_DIR := $(PREFIX)/share/bash-completion/completions
-ZSH_COMPLETION_DIR := $(PREFIX)/share/zsh/site-functions
-FISH_COMPLETION_DIR := $(PREFIX)/share/fish/vendor_completions.d
 
 .PHONY: all build test check install uninstall completions man dist clean
 
@@ -40,12 +35,12 @@ completions: build
 	$(BIN) completions zsh > $(DIST)/_appd
 	$(BIN) completions fish > $(DIST)/appd.fish
 
-install: build man completions
-	install -Dm755 $(BIN) $(DESTDIR)$(BINDIR)/appd
-	install -Dm644 $(DIST)/appd.1 $(DESTDIR)$(MANDIR)/appd.1
-	install -Dm644 $(DIST)/appd.bash $(DESTDIR)$(BASH_COMPLETION_DIR)/appd
-	install -Dm644 $(DIST)/_appd $(DESTDIR)$(ZSH_COMPLETION_DIR)/_appd
-	install -Dm644 $(DIST)/appd.fish $(DESTDIR)$(FISH_COMPLETION_DIR)/appd.fish
+# The binary installs itself: one implementation for cargo, make and the tarball.
+install: build
+	$(BIN) install --prefix $(PREFIX) $(if $(DESTDIR),--destdir $(DESTDIR))
+
+uninstall: build
+	$(BIN) install --prefix $(PREFIX) $(if $(DESTDIR),--destdir $(DESTDIR)) --uninstall
 
 # A self-contained release for a machine without a Rust toolchain:
 # binary, man page, completions, docs and an install script.
@@ -65,13 +60,6 @@ dist: man completions
 	@echo
 	@echo "release: $(DIST_DIR).tar.gz"
 	@echo "  scp it to the server, extract, then: sudo ./$(DIST_NAME)/install.sh"
-
-uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/appd
-	rm -f $(DESTDIR)$(MANDIR)/appd.1
-	rm -f $(DESTDIR)$(BASH_COMPLETION_DIR)/appd
-	rm -f $(DESTDIR)$(ZSH_COMPLETION_DIR)/_appd
-	rm -f $(DESTDIR)$(FISH_COMPLETION_DIR)/appd.fish
 
 clean:
 	$(CARGO) clean

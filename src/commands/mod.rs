@@ -3,6 +3,7 @@ pub mod diff;
 pub mod doctor;
 pub mod generate;
 pub mod init;
+pub mod install;
 pub mod lifecycle;
 pub mod logs;
 pub mod remove;
@@ -19,6 +20,11 @@ use crate::cli::{Cli, Command};
 pub fn run(cli: Cli) -> Result<i32> {
     match cli.command {
         Some(Command::Init) => init::run(),
+        Some(Command::Install {
+            prefix,
+            destdir,
+            uninstall,
+        }) => install::run(&prefix, &destdir.unwrap_or_default(), uninstall),
         Some(Command::Apply { apps, prune }) => apply::run(&apps, prune, cli.yes),
         Some(Command::Status { apps }) => status::run(&apps),
         Some(Command::Diff { apps }) => diff::run(&apps),
@@ -94,7 +100,7 @@ fn hint_for(exe: &std::path::Path, args: &str) -> String {
         format!("sudo {} {args}", exe.display())
     };
     format!(
-        "{direct}\n\n  or install it system-wide once, then use `{sudo}`:\n  sudo install -Dm755 {} /usr/local/bin/{name}",
+        "{direct}\n\n  or install it system-wide once, then use `{sudo}`:\n  sudo {} install",
         exe.display()
     )
 }
@@ -152,7 +158,7 @@ mod tests {
             "{hint}"
         );
         assert!(
-            hint.contains("sudo install -Dm755 /home/you/.cargo/bin/appd /usr/local/bin/appd"),
+            hint.contains("sudo /home/you/.cargo/bin/appd install"),
             "{hint}"
         );
         assert!(hint.contains("`sudo appd init`"), "{hint}");

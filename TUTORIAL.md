@@ -714,6 +714,7 @@ left behind by a deleted config, it shows up as an orphan and is cleaned with
 | Command | Does |
 | --- | --- |
 | `appd init` | create `/etc/appd` and print next steps; idempotent |
+| `appd install [--prefix DIR] [--uninstall]` | install the binary, man page and completions |
 | `appd apply [APP…\|all] [--prune] [--yes]` | render units, install, `daemon-reload` |
 | `appd diff [APP…\|all]` | show drift; exit 1 if any |
 | `appd doctor` | preflight / diagnose; exit 1 on problems |

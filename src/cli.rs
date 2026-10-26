@@ -22,6 +22,20 @@ pub enum Command {
     /// Create the config directory and print the next steps.
     Init,
 
+    /// Install appd system-wide: binary, man page and shell completions.
+    Install {
+        #[arg(long, default_value = "/usr/local", value_name = "DIR")]
+        prefix: std::path::PathBuf,
+
+        /// Staging root prepended to the prefix, for packaging.
+        #[arg(long, value_name = "DIR")]
+        destdir: Option<std::path::PathBuf>,
+
+        /// Remove the installed files instead.
+        #[arg(long)]
+        uninstall: bool,
+    },
+
     /// Render configs into systemd units, install them, and reload systemd.
     Apply {
         /// App names, or `all`. Defaults to all.
