@@ -242,12 +242,15 @@ fn service_verbs_refuse_to_run_unprivileged() {
 
     assert!(!output.status.success());
     let text = stderr(&output);
-    assert!(text.contains("requires root"), "{text}");
+    assert!(text.contains("needs root"), "{text}");
     assert!(
         text.contains(env!("CARGO_BIN_EXE_appd")),
         "the hint should name the binary's actual path: {text}"
     );
-    assert!(text.contains("sudo "), "{text}");
+    assert!(
+        text.contains("sudo install -Dm755"),
+        "a cargo-installed binary should offer a system-wide install: {text}"
+    );
 }
 
 #[test]

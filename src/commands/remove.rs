@@ -15,8 +15,8 @@ pub fn run(app_name: &str, keep_user: bool, keep_state: bool, yes: bool) -> Resu
     let managing = paths::manages_system_units();
     if managing && !systemd::is_root() {
         bail!(
-            "`remove` deletes units, configs and system accounts; run:\n  {} remove <app>",
-            crate::commands::root_hint()
+            "`remove` deletes units, configs and system accounts; it needs root.\n\n  {}",
+            crate::commands::root_hint("remove <app>")
         );
     }
 

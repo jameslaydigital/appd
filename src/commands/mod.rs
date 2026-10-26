@@ -52,13 +52,51 @@ pub fn run(cli: Cli) -> Result<i32> {
     }
 }
 
-/// The command a user should run to get root, with the absolute path to this binary:
-/// `cargo install` puts it in `~/.cargo/bin`, which sudo's secure_path does not search.
-pub fn root_hint() -> String {
-    let exe = std::env::current_exe()
-        .map(|path| path.display().to_string())
-        .unwrap_or_else(|_| "appd".to_string());
-    format!("sudo {exe}")
+/// The command to run something as root, including how to make it sudo-accessible when the binary
+/// lives outside the system path (`cargo install` puts it in `~/.cargo/bin`, which sudo does not
+/// search).
+pub fn root_hint(args: &str) -> String {
+    let exe = std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("appd"));
+    hint_for(&exe, args)
+}
+
+fn hint_for(exe: &std::path::Path, args: &str) -> String {
+    let name = exe
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("appd");
+
+    let sudo = if args.is_empty() {
+        format!("sudo {name}")
+    } else {
+        format!("sudo {name} {args}")
+    };
+
+    // The default sudo secure_path on Linux distributions.
+    const SYSTEM_DIRS: &[&str] = &[
+        "/usr/local/sbin",
+        "/usr/local/bin",
+        "/usr/sbin",
+        "/usr/bin",
+        "/sbin",
+        "/bin",
+    ];
+    let reachable = exe
+        .parent()
+        .is_some_and(|parent| SYSTEM_DIRS.iter().any(|dir| std::path::Path::new(dir) == parent));
+    if reachable {
+        return sudo;
+    }
+
+    let direct = if args.is_empty() {
+        format!("sudo {}", exe.display())
+    } else {
+        format!("sudo {} {args}", exe.display())
+    };
+    format!(
+        "{direct}\n\n  or install it system-wide once, then use `{sudo}`:\n  sudo install -Dm755 {} /usr/local/bin/{name}",
+        exe.display()
+    )
 }
 
 /// Confirm before touching every app. Non-interactive callers must pass `--yes`; they are never
@@ -89,5 +127,34 @@ pub fn plural(count: usize, singular: &str, plural: &str) -> String {
         format!("{count} {singular}")
     } else {
         format!("{count} {plural}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hint_for;
+    use std::path::Path;
+
+    #[test]
+    fn system_paths_use_plain_sudo() {
+        assert_eq!(
+            hint_for(Path::new("/usr/local/bin/appd"), "apply"),
+            "sudo appd apply"
+        );
+        assert_eq!(hint_for(Path::new("/usr/bin/appd"), ""), "sudo appd");
+    }
+
+    #[test]
+    fn cargo_installs_get_a_system_install_hint() {
+        let hint = hint_for(Path::new("/home/you/.cargo/bin/appd"), "init");
+        assert!(
+            hint.starts_with("sudo /home/you/.cargo/bin/appd init"),
+            "{hint}"
+        );
+        assert!(
+            hint.contains("sudo install -Dm755 /home/you/.cargo/bin/appd /usr/local/bin/appd"),
+            "{hint}"
+        );
+        assert!(hint.contains("`sudo appd init`"), "{hint}");
     }
 }

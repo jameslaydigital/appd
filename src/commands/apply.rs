@@ -33,9 +33,9 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
     let managing = paths::manages_system_units();
     if managing && !systemd::is_root() {
         bail!(
-            "`apply` writes to {} and manages system accounts; run:\n  {} apply",
+            "`apply` writes to {} and manages system accounts; it needs root.\n\n  {}",
             paths::unit_dir().display(),
-            crate::commands::root_hint()
+            crate::commands::root_hint("apply")
         );
     }
 

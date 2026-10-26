@@ -20,9 +20,9 @@ pub fn run() -> Result<i32> {
             // No point failing with "run as root" and no command: a cargo-installed appd is not
             // on sudo's PATH, so spell out the working invocation.
             bail!(
-                "creating {} needs root; run:\n  {} init",
+                "creating {} needs root.\n\n  {}",
                 dir.display(),
-                root_hint()
+                root_hint("init")
             );
         }
         paths::ensure_config_dir()?;

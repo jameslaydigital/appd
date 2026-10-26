@@ -35,10 +35,9 @@ impl Verb {
 pub fn run(verb: Verb, apps: &[String], yes: bool) -> Result<i32> {
     if !systemd::is_root() {
         bail!(
-            "`{}` requires root (it drives systemd); run:\n  {} {}",
+            "`{}` drives systemd and needs root.\n\n  {}",
             verb.as_str(),
-            crate::commands::root_hint(),
-            verb.as_str()
+            crate::commands::root_hint(verb.as_str())
         );
     }
 
