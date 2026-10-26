@@ -305,7 +305,7 @@
       set: (config, on) => {
         if (on) {
           config.permissions = config.permissions || {};
-          config.permissions.write = ["/srv/sundial/public"];
+          config.permissions.write = ["/srv/my-app-service/public"];
         } else if (config.permissions) {
           delete config.permissions.write;
         }
@@ -334,7 +334,7 @@
         typeof config.environment_file === "string" ||
         (Array.isArray(config.environment_file) && config.environment_file.length > 0),
       set: (config, on) => {
-        if (on) config.environment_file = "/etc/appd/sundial.env";
+        if (on) config.environment_file = "/etc/appd/my-app-service.env";
         else delete config.environment_file;
       },
     },

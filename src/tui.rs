@@ -756,14 +756,14 @@ mod tests {
 
     #[test]
     fn filter_narrows_and_selection_clamps() {
-        let mut model = model_with(&["sundial-api", "sundial-worker", "other"]);
+        let mut model = model_with(&["my-app-service", "my-app-service-worker", "other"]);
         model.selected = 2;
-        model.filter = "sundial".to_string();
+        model.filter = "my-app".to_string();
 
         assert_eq!(model.visible(), vec![0, 1]);
         model.clamp_selection();
         assert_eq!(model.selected, 1);
-        assert_eq!(model.current().unwrap().name, "sundial-worker");
+        assert_eq!(model.current().unwrap().name, "my-app-service-worker");
     }
 
     #[test]

@@ -96,15 +96,15 @@
           <button class="copy" type="button" data-copy="#ref-config" aria-label="Copy example config" aria-live="polite">Copy</button>
         </div>
         <pre id="ref-config"><code>{
-  <span class="tok-key">"description"</span>: <span class="tok-string">"Sundial notes API"</span>,
-  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/sundial/bin/sundial-api"</span>,
+  <span class="tok-key">"description"</span>: <span class="tok-string">"My app service"</span>,
+  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/my-app-service/bin/my-app-service"</span>,
   <span class="tok-key">"args"</span>: [<span class="tok-string">"--bind"</span>, <span class="tok-string">"127.0.0.1:8787"</span>],
-  <span class="tok-key">"working_directory"</span>: <span class="tok-string">"/srv/sundial"</span>,
+  <span class="tok-key">"working_directory"</span>: <span class="tok-string">"/srv/my-app-service"</span>,
   <span class="tok-key">"restart"</span>: <span class="tok-string">"on-failure"</span>,
-  <span class="tok-key">"environment_file"</span>: <span class="tok-string">"/etc/appd/sundial.env"</span>,
+  <span class="tok-key">"environment_file"</span>: <span class="tok-string">"/etc/appd/my-app-service.env"</span>,
   <span class="tok-key">"permissions"</span>: {
     <span class="tok-key">"network"</span>: <span class="tok-num">true</span>,
-    <span class="tok-key">"write"</span>: [<span class="tok-string">"/srv/sundial/public"</span>]
+    <span class="tok-key">"write"</span>: [<span class="tok-string">"/srv/my-app-service/public"</span>]
   }
 }</code></pre>
       </div>
@@ -244,7 +244,7 @@
   <footer class="foot shell">
     <p>appd 0.2.7 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
-    <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
+    <p>Set in IBM Plex Mono and Newsreader. The accent is xterm colour 208.</p>
   </footer>
 </body>
 </html>

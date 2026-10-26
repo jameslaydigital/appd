@@ -42,7 +42,7 @@
   <main id="main" class="shell">
     <header class="doc-head">
       <h1 class="doc-title">Tutorial</h1>
-      <p class="lede">Deploy a service from one config. Sundial is a hypothetical service; the requirements are real. The long version, with the migration edge cases, is in the repository’s <a href="https://github.com/jameslaydigital/appd/blob/main/TUTORIAL.md">TUTORIAL.md</a>.</p>
+      <p class="lede">Deploy a service from one config. The example app is hypothetical; the requirements are real. The long version, with the migration edge cases, is in the repository’s <a href="https://github.com/jameslaydigital/appd/blob/main/TUTORIAL.md">TUTORIAL.md</a>.</p>
     </header>
 
     <nav class="toc" aria-label="On this page">
@@ -76,13 +76,13 @@ sudo "$(command -v appd)" install</code></pre>
 
     <section aria-labelledby="app">
       <h2 id="app">The app</h2>
-      <p>Sundial is a hypothetical notes API, used so the paths and commands have something concrete to point at. It reads code and templates from <code>/srv/sundial</code>, writes rendered pages to <code>/srv/sundial/public</code>, and keeps credentials in an environment file. Substitute your own service.</p>
+      <p>The example app is a hypothetical notes API, used so the paths and commands have something concrete to point at. It reads code and templates from <code>/srv/my-app-service</code>, writes rendered pages to <code>/srv/my-app-service/public</code>, and keeps credentials in an environment file. Substitute your own service.</p>
       <div class="code">
         <div class="code__bar">
           <span class="code__label">layout</span>
         </div>
-        <pre><code>/srv/sundial/
-├── bin/sundial-api
+        <pre><code>/srv/my-app-service/
+├── bin/my-app-service
 ├── templates/
 └── public/          <span class="tok-comment"># rendered pages; the API writes here</span></code></pre>
       </div>
@@ -91,33 +91,33 @@ sudo "$(command -v appd)" install</code></pre>
 
     <section aria-labelledby="config">
       <h2 id="config">The config</h2>
-      <p>Save this as <code>/etc/appd/sundial.json</code>. The filename becomes the app name, the unit name, and the account name.</p>
+      <p>Save this as <code>/etc/appd/my-app-service.json</code>. The filename becomes the app name, the unit name, and the account name.</p>
       <div class="code">
         <div class="code__bar">
           <span class="code__label">json</span>
           <button class="copy" type="button" data-copy="#tut-config" aria-label="Copy example config" aria-live="polite">Copy</button>
         </div>
         <pre id="tut-config"><code>{
-  <span class="tok-key">"description"</span>: <span class="tok-string">"Sundial notes API"</span>,
-  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/sundial/bin/sundial-api"</span>,
+  <span class="tok-key">"description"</span>: <span class="tok-string">"My app service"</span>,
+  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/my-app-service/bin/my-app-service"</span>,
   <span class="tok-key">"args"</span>: [<span class="tok-string">"--bind"</span>, <span class="tok-string">"127.0.0.1:8787"</span>],
-  <span class="tok-key">"working_directory"</span>: <span class="tok-string">"/srv/sundial"</span>,
+  <span class="tok-key">"working_directory"</span>: <span class="tok-string">"/srv/my-app-service"</span>,
   <span class="tok-key">"restart"</span>: <span class="tok-string">"on-failure"</span>,
   <span class="tok-key">"reload"</span>: [<span class="tok-string">"/bin/kill"</span>, <span class="tok-string">"-HUP"</span>, <span class="tok-string">"$MAINPID"</span>],
-  <span class="tok-key">"environment_file"</span>: <span class="tok-string">"/etc/appd/sundial.env"</span>,
+  <span class="tok-key">"environment_file"</span>: <span class="tok-string">"/etc/appd/my-app-service.env"</span>,
   <span class="tok-key">"permissions"</span>: {
     <span class="tok-key">"network"</span>: <span class="tok-num">true</span>,
-    <span class="tok-key">"write"</span>: [<span class="tok-string">"/srv/sundial/public"</span>]
+    <span class="tok-key">"write"</span>: [<span class="tok-string">"/srv/my-app-service/public"</span>]
   }
 }</code></pre>
       </div>
-      <p>There is no <code>user</code> field, so <code>apply</code> provisions <code>appd-sundial</code>. There is no state path, because systemd creates <code>/var/lib/appd-sundial</code> and makes it writable under <code>ProtectSystem=strict</code>.</p>
+      <p>There is no <code>user</code> field, so <code>apply</code> provisions <code>appd-my-app-service</code>. There is no state path, because systemd creates <code>/var/lib/appd-my-app-service</code> and makes it writable under <code>ProtectSystem=strict</code>.</p>
       <p>The environment file is read by systemd as root, so it can stay <code>0600</code>:</p>
       <div class="code">
         <div class="code__bar">
-          <span class="code__label">/etc/appd/sundial.env</span>
+          <span class="code__label">/etc/appd/my-app-service.env</span>
         </div>
-        <pre><code>DATABASE_URL=postgres://sundial@127.0.0.1/sundial
+        <pre><code>DATABASE_URL=postgres://my_app_service@127.0.0.1/my_app_service
 SESSION_SECRET=replace-with-something-long</code></pre>
       </div>
     </section>
@@ -136,12 +136,12 @@ SESSION_SECRET=replace-with-something-long</code></pre>
         <div class="code__bar">
           <span class="code__label">output</span>
         </div>
-        <pre><code>sundial
-  ✗ environment file /etc/appd/sundial.env does not exist; the unit will fail to start
-  ✗ service account `appd-sundial` does not exist
-      fix: appd apply sundial
-  ⚠ appd-sundial.service is not installed
-      fix: appd apply sundial
+        <pre><code>my-app-service
+  ✗ environment file /etc/appd/my-app-service.env does not exist; the unit will fail to start
+  ✗ service account `appd-my-app-service` does not exist
+      fix: appd apply my-app-service
+  ⚠ appd-my-app-service.service is not installed
+      fix: appd apply my-app-service
 
 1 app checked, 2 problems, 1 warning, 0 orphans</code></pre>
       </div>
@@ -155,26 +155,26 @@ SESSION_SECRET=replace-with-something-long</code></pre>
           <span class="code__label">shell</span>
           <button class="copy" type="button" data-copy="#tut-apply" aria-label="Copy apply commands" aria-live="polite">Copy</button>
         </div>
-        <pre id="tut-apply"><code>sudo appd apply sundial
-sudo appd enable sundial
-sudo appd start sundial</code></pre>
+        <pre id="tut-apply"><code>sudo appd apply my-app-service
+sudo appd enable my-app-service
+sudo appd start my-app-service</code></pre>
       </div>
-      <p><code>apply</code> writes <code>/etc/systemd/system/appd-sundial.service</code>, provisions the account, and reloads systemd. It does not start or enable anything. Those are the next two commands, separately.</p>
+      <p><code>apply</code> writes <code>/etc/systemd/system/appd-my-app-service.service</code>, provisions the account, and reloads systemd. It does not start or enable anything. Those are the next two commands, separately.</p>
       <p>After granting the write path to the new account, check the result:</p>
       <div class="code">
         <div class="code__bar">
           <span class="code__label">shell</span>
           <button class="copy" type="button" data-copy="#tut-status" aria-label="Copy status commands" aria-live="polite">Copy</button>
         </div>
-        <pre id="tut-status"><code>sudo chown appd-sundial:appd-sundial /srv/sundial/public
+        <pre id="tut-status"><code>sudo chown appd-my-app-service:appd-my-app-service /srv/my-app-service/public
 appd status all</code></pre>
       </div>
       <div class="code">
         <div class="code__bar">
           <span class="code__label">output</span>
         </div>
-        <pre><code>APP      UNIT                  STATE    SINCE             PID    NOTES
-sundial  appd-sundial.service  running  2026-10-26 14:02  41231</code></pre>
+        <pre><code>APP             UNIT                         STATE    SINCE             PID    NOTES
+my-app-service  appd-my-app-service.service  running  2026-10-26 14:02  41231</code></pre>
       </div>
     </section>
 
@@ -185,9 +185,9 @@ sundial  appd-sundial.service  running  2026-10-26 14:02  41231</code></pre>
           <span class="code__label">shell</span>
           <button class="copy" type="button" data-copy="#tut-logs" aria-label="Copy log commands" aria-live="polite">Copy</button>
         </div>
-        <pre id="tut-logs"><code>appd logs sundial -n 50
-appd logs sundial -f
-appd error-logs sundial</code></pre>
+        <pre id="tut-logs"><code>appd logs my-app-service -n 50
+appd logs my-app-service -f
+appd error-logs my-app-service</code></pre>
       </div>
       <p>The backend is journald. <code>error-logs</code> filters to priority <code>err</code>; journald records plain stdout and stderr at priority 6, so an app has to tag a line with <code>&lt;3&gt;</code> to appear there. <code>appd logs</code> always shows the merged stream.</p>
       <div class="code">
@@ -207,11 +207,11 @@ process.stderr.write(<span class="tok-string">"&lt;3&gt;database connection lost
           <span class="code__label">shell</span>
           <button class="copy" type="button" data-copy="#tut-change" aria-label="Copy change commands" aria-live="polite">Copy</button>
         </div>
-        <pre id="tut-change"><code>sudo appd diff sundial
-sudo appd apply sundial
-sudo appd restart sundial</code></pre>
+        <pre id="tut-change"><code>sudo appd diff my-app-service
+sudo appd apply my-app-service
+sudo appd restart my-app-service</code></pre>
       </div>
-      <p>If the change is something the process reads at runtime — a template, not an argument — use <code>sudo appd reload sundial</code>. It runs the configured <code>reload</code> command. Without one, appd refuses and tells you to restart instead of guessing at a signal.</p>
+      <p>If the change is something the process reads at runtime — a template, not an argument — use <code>sudo appd reload my-app-service</code>. It runs the configured <code>reload</code> command. Without one, appd refuses and tells you to restart instead of guessing at a signal.</p>
     </section>
 
     <section aria-labelledby="remove">
@@ -221,7 +221,7 @@ sudo appd restart sundial</code></pre>
           <span class="code__label">shell</span>
           <button class="copy" type="button" data-copy="#tut-remove" aria-label="Copy remove command" aria-live="polite">Copy</button>
         </div>
-        <pre id="tut-remove"><code>sudo appd remove sundial</code></pre>
+        <pre id="tut-remove"><code>sudo appd remove my-app-service</code></pre>
       </div>
       <p>It prints exactly what will go: unit, config, provisioned account, state directory. <code>--keep-user</code> and <code>--keep-state</code> leave either behind. It never deletes the application binary, because appd did not install it.</p>
     </section>
@@ -257,7 +257,7 @@ sudo appd restart sundial</code></pre>
             <tr>
               <td data-label="Symptom">Behavior did not change after <code>apply</code></td>
               <td data-label="Cause">The running process still holds the old unit.</td>
-              <td data-label="Fix"><code>appd restart sundial</code>, or <code>reload</code> if the change is reloadable.</td>
+              <td data-label="Fix"><code>appd restart my-app-service</code>, or <code>reload</code> if the change is reloadable.</td>
             </tr>
             <tr>
               <td data-label="Symptom"><code>doctor</code> warns about two versions</td>
@@ -274,7 +274,7 @@ sudo appd restart sundial</code></pre>
   <footer class="foot shell">
     <p>appd 0.2.7 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
-    <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
+    <p>Set in IBM Plex Mono and Newsreader. The accent is xterm colour 208.</p>
   </footer>
 </body>
 </html>

@@ -70,10 +70,10 @@ sudo "$(command -v appd)" install</code></pre>
           <p class="note">No Rust on the host? <a href="https://github.com/jameslaydigital/appd/releases/latest">Take the static binary</a>. It is a single file; copy it, run <code>appd install</code>, and continue. <code>install</code> also creates <code>/etc/appd</code>.</p>
         </div>
         <dl class="targets" aria-label="Names and paths derived from the app name">
-          <div><dt>config</dt><dd>/etc/appd/sundial.json</dd></div>
-          <div><dt>unit</dt><dd>appd-sundial.service</dd></div>
-          <div><dt>account</dt><dd>appd-sundial</dd></div>
-          <div><dt>state</dt><dd>/var/lib/appd-sundial</dd></div>
+          <div><dt>config</dt><dd>/etc/appd/my-app-service.json</dd></div>
+          <div><dt>unit</dt><dd>appd-my-app-service.service</dd></div>
+          <div><dt>account</dt><dd>appd-my-app-service</dd></div>
+          <div><dt>state</dt><dd>/var/lib/appd-my-app-service</dd></div>
         </dl>
       </div>
     </section>
@@ -84,15 +84,15 @@ sudo "$(command -v appd)" install</code></pre>
         <li>
           <div>
             <h3>Write one config.</h3>
-            <p>Save this as <code>/etc/appd/sundial.json</code>, mode <code>0600</code>. The filename is the app name. Sundial is a stand-in; use your own project name.</p>
+            <p>Save this as <code>/etc/appd/my-app-service.json</code>, mode <code>0600</code>. The filename is the app name. The name is a stand-in; use your own project name.</p>
             <div class="code">
               <div class="code__bar">
                 <span class="code__label">json</span>
                 <button class="copy" type="button" data-copy="#config-code" aria-label="Copy example config" aria-live="polite">Copy</button>
               </div>
               <pre id="config-code"><code>{
-  <span class="tok-key">"description"</span>: <span class="tok-string">"Sundial notes API"</span>,
-  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/sundial/bin/sundial-api"</span>,
+  <span class="tok-key">"description"</span>: <span class="tok-string">"My app service"</span>,
+  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/my-app-service/bin/my-app-service"</span>,
   <span class="tok-key">"args"</span>: [<span class="tok-string">"--bind"</span>, <span class="tok-string">"127.0.0.1:8787"</span>],
   <span class="tok-key">"restart"</span>: <span class="tok-string">"on-failure"</span>,
   <span class="tok-key">"permissions"</span>: {
@@ -118,13 +118,13 @@ sudo "$(command -v appd)" install</code></pre>
         <li>
           <div>
             <h3>Write the unit.</h3>
-            <p>Apply renders <code>/etc/systemd/system/appd-sundial.service</code> and reloads systemd. It starts nothing.</p>
+            <p>Apply renders <code>/etc/systemd/system/appd-my-app-service.service</code> and reloads systemd. It starts nothing.</p>
             <div class="code">
               <div class="code__bar">
                 <span class="code__label">shell</span>
                 <button class="copy" type="button" data-copy="#apply-code" aria-label="Copy apply command" aria-live="polite">Copy</button>
               </div>
-              <pre id="apply-code"><code>sudo appd apply sundial</code></pre>
+              <pre id="apply-code"><code>sudo appd apply my-app-service</code></pre>
             </div>
           </div>
         </li>
@@ -137,8 +137,8 @@ sudo "$(command -v appd)" install</code></pre>
                 <span class="code__label">shell</span>
                 <button class="copy" type="button" data-copy="#start-code" aria-label="Copy start commands" aria-live="polite">Copy</button>
               </div>
-              <pre id="start-code"><code>sudo appd enable sundial
-sudo appd start sundial</code></pre>
+              <pre id="start-code"><code>sudo appd enable my-app-service
+sudo appd start my-app-service</code></pre>
             </div>
           </div>
         </li>
@@ -154,7 +154,7 @@ sudo appd start sundial</code></pre>
         <div class="lab__head">
           <label class="lab__name" for="lab-name">
             <span class="lab__name-label">app name</span>
-            <span class="lab__name-input"><span aria-hidden="true">/etc/appd/</span><input id="lab-name" type="text" aria-label="App name" value="sundial" maxlength="27" size="8" spellcheck="false" autocomplete="off" autocapitalize="off">.json</span>
+            <span class="lab__name-input"><span aria-hidden="true">/etc/appd/</span><input id="lab-name" type="text" aria-label="App name" value="my-app-service" maxlength="27" size="8" spellcheck="false" autocomplete="off" autocapitalize="off">.json</span>
           </label>
           <p class="lab__status" id="lab-status" aria-live="polite">18 hardening · 1 exception · 41 lines</p>
         </div>
@@ -218,10 +218,10 @@ sudo appd start sundial</code></pre>
               </span>
             </div>
             <textarea class="lab__json" id="lab-json" aria-label="JSON config" spellcheck="false" autocomplete="off" autocapitalize="off">{
-  "description": "Sundial notes API",
-  "exec": "/srv/sundial/bin/sundial-api",
+  "description": "My app service",
+  "exec": "/srv/my-app-service/bin/my-app-service",
   "args": ["--bind", "127.0.0.1:8787"],
-  "working_directory": "/srv/sundial",
+  "working_directory": "/srv/my-app-service",
   "restart": "on-failure",
   "permissions": {
     "network": true
@@ -231,24 +231,24 @@ sudo appd start sundial</code></pre>
 
           <div class="code lab__pane">
             <div class="code__bar">
-              <span class="code__label" id="lab-unit-name">appd-sundial.service</span>
+              <span class="code__label" id="lab-unit-name">appd-my-app-service.service</span>
               <span class="lab__actions">
                 <button class="copy" type="button" id="lab-jump" aria-label="Jump to the permissions section of the unit">permissions ↓</button>
                 <button class="copy" type="button" data-copy="#lab-unit" aria-label="Copy the generated unit" aria-live="polite">Copy</button>
               </span>
             </div>
             <pre class="lab__unit" id="lab-unit" aria-label="Generated systemd unit"><code>[Unit]
-Description=Sundial notes API
+Description=My app service
 X-Appd-Managed=1
 After=network-online.target
 
 [Service]
 Type=simple
-User=appd-sundial
-Group=appd-sundial
-WorkingDirectory=/srv/sundial
-StateDirectory=appd-sundial
-ExecStart=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787
+User=appd-my-app-service
+Group=appd-my-app-service
+WorkingDirectory=/srv/my-app-service
+StateDirectory=appd-my-app-service
+ExecStart=/srv/my-app-service/bin/my-app-service --bind 127.0.0.1:8787
 Restart=on-failure
 StandardOutput=journal
 StandardError=journal

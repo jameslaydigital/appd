@@ -246,7 +246,7 @@ fn skills_install_supports_agent_flavors() {
 #[test]
 fn install_app_copies_the_config_under_the_project_name() {
     let fixture = Fixture::bare();
-    let project = fixture.root.path().join("sundial");
+    let project = fixture.root.path().join("my-app-service");
     fs::create_dir_all(&project).unwrap();
     fs::write(
         project.join(".appd.conf"),
@@ -257,7 +257,7 @@ fn install_app_copies_the_config_under_the_project_name() {
     let output = fixture.run(&["install-app", project.to_str().unwrap()]);
     assert!(output.status.success(), "{}", stderr(&output));
 
-    let destination = fixture.config_dir().join("sundial.json");
+    let destination = fixture.config_dir().join("my-app-service.json");
     assert!(destination.is_file(), "config was not installed");
     assert!(
         fs::read_to_string(&destination).unwrap().contains("/bin/true"),
@@ -280,7 +280,7 @@ fn install_app_copies_the_config_under_the_project_name() {
 #[test]
 fn install_app_rejects_an_invalid_directory_name() {
     let fixture = Fixture::bare();
-    let project = fixture.root.path().join("Sundial API");
+    let project = fixture.root.path().join("My App Service");
     fs::create_dir_all(&project).unwrap();
     fs::write(project.join(".appd.conf"), r#"{ "exec": "/bin/true" }"#).unwrap();
 
