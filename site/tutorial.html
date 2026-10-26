@@ -42,7 +42,7 @@
   <main id="main" class="shell">
     <header class="doc-head">
       <h1 class="doc-title">Tutorial</h1>
-      <p class="lede">Deploy a real service from one config. The long version, with the migration edge cases, is in the repository’s <a href="https://github.com/jameslaydigital/appd/blob/main/TUTORIAL.md">TUTORIAL.md</a>.</p>
+      <p class="lede">Deploy a service from one config. Sundial is a hypothetical service; the requirements are real. The long version, with the migration edge cases, is in the repository’s <a href="https://github.com/jameslaydigital/appd/blob/main/TUTORIAL.md">TUTORIAL.md</a>.</p>
     </header>
 
     <nav class="toc" aria-label="On this page">
@@ -67,15 +67,16 @@
           <button class="copy" type="button" data-copy="#tut-install" aria-label="Copy install commands" aria-live="polite">Copy</button>
         </div>
         <pre id="tut-install"><code>cargo install --locked appd
-sudo "$(command -v appd)" install
-sudo appd init</code></pre>
+sudo "$(command -v appd)" install</code></pre>
       </div>
-      <p>The second command copies the binary to <code>/usr/local/bin</code>, writes the man page, and installs completions. The third creates <code>/etc/appd</code> with mode <code>0755</code>; config files stay <code>0600</code> because they may hold secrets.</p>
+      <p>The second command copies the binary to <code>/usr/local/bin</code>, writes the man page and completions, and creates <code>/etc/appd</code> with mode <code>0755</code>. Config files stay <code>0600</code> because they may hold secrets.</p>
+      <h3>From a project directory</h3>
+      <p>Keep the config in the repository as <code>.appd.conf</code>. <code>appd skills install</code> writes the editor skill; <code>sudo appd install-app .</code> validates the file and copies it to <code>/etc/appd/&lt;project&gt;.json</code> under the directory name.</p>
     </section>
 
     <section aria-labelledby="app">
       <h2 id="app">The app</h2>
-      <p>Sundial is a small notes API. It reads code and templates from <code>/srv/sundial</code>, writes rendered pages to <code>/srv/sundial/public</code>, and keeps credentials in an environment file.</p>
+      <p>Sundial is a hypothetical notes API, used so the paths and commands have something concrete to point at. It reads code and templates from <code>/srv/sundial</code>, writes rendered pages to <code>/srv/sundial/public</code>, and keeps credentials in an environment file. Substitute your own service.</p>
       <div class="code">
         <div class="code__bar">
           <span class="code__label">layout</span>
@@ -271,7 +272,7 @@ sudo appd restart sundial</code></pre>
   </main>
 
   <footer class="foot shell">
-    <p>appd 0.2.5 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p>appd 0.2.6 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
     <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
   </footer>

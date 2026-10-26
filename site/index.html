@@ -44,7 +44,7 @@
       <div class="title__text">
         <h1 id="page-title">appd(1)</h1>
         <p class="title__tagline">Systemd application manager</p>
-        <p class="title__meta">Version 0.2.5 · Linux · MIT</p>
+        <p class="title__meta">Version 0.2.6 · Linux · MIT</p>
         <p class="lede">One JSON file in. One hardened systemd unit out.</p>
       </div>
 
@@ -65,10 +65,9 @@
               <button class="copy" type="button" data-copy="#install-code" aria-label="Copy install commands" aria-live="polite">Copy</button>
             </div>
             <pre id="install-code"><code>cargo install --locked appd
-sudo "$(command -v appd)" install
-sudo appd init</code></pre>
+sudo "$(command -v appd)" install</code></pre>
           </div>
-          <p class="note">No Rust on the host? <a href="https://github.com/jameslaydigital/appd/releases/latest">Take the static binary</a>. It is a single file; copy it, run <code>appd install</code>, and continue.</p>
+          <p class="note">No Rust on the host? <a href="https://github.com/jameslaydigital/appd/releases/latest">Take the static binary</a>. It is a single file; copy it, run <code>appd install</code>, and continue. <code>install</code> also creates <code>/etc/appd</code>.</p>
         </div>
         <figure class="palette">
           <canvas id="xterm-palette" width="512" height="512" aria-hidden="true"></canvas>
@@ -83,7 +82,7 @@ sudo appd init</code></pre>
         <li>
           <div>
             <h3>Write one config.</h3>
-            <p>Save this as <code>/etc/appd/sundial.json</code>, mode <code>0600</code>. The filename is the app name.</p>
+            <p>Save this as <code>/etc/appd/sundial.json</code>, mode <code>0600</code>. The filename is the app name. Sundial is a stand-in; use your own project name.</p>
             <div class="code">
               <div class="code__bar">
                 <span class="code__label">json</span>
@@ -158,6 +157,14 @@ sudo appd start sundial</code></pre>
           <dd>One JSON config per app, one generated unit, one predictable name.</dd>
         </div>
         <div>
+          <dt>group operations</dt>
+          <dd><code>appd restart all</code>, <code>appd status all</code>, <code>appd apply all</code> — no unit-name roulette.</dd>
+        </div>
+        <div>
+          <dt>the supervisor trade-off</dt>
+          <dd>Group control without giving up systemd's sandbox.</dd>
+        </div>
+        <div>
           <dt>hardening drift</dt>
           <dd>The sandbox is closed by default. Every path, device, or socket is an explicit line in the config, visible in <code>appd diff</code>.</dd>
         </div>
@@ -199,10 +206,12 @@ sudo appd start sundial</code></pre>
 
     <section aria-labelledby="philosophy">
       <h2 id="philosophy">Philosophy</h2>
-      <p class="creed">Hardening is the default. <strong>Permissions</strong> are the exception.</p>
-      <p>Most unit files are copied from a blog post and edited until the service starts. Hardening gets dropped along the way, because it is the part that makes the service fail. appd reverses the order: the sandbox is closed first, and every exception is a line you can read, review, and remove.</p>
-      <p>A service should be able to read its code and write its state directory. It should not be able to see other processes, modify the rest of the filesystem, or gain privileges. When it needs more, the config says so.</p>
-      <p>appd is a CLI today. A daemon is planned as a mode of the same binary, not as a second product. Until then, systemd is the daemon, and the unit files are the state.</p>
+      <p class="creed">Simplify the service. Keep the <strong>sandbox</strong>.</p>
+      <p>systemctl is exact, but it makes you hold the whole estate in your head: unit names, per-service restart commands, and hardening lines copied from somewhere until the service starts. supervisorctl gives you group control, then asks you to trade away the sandbox systemd already provides.</p>
+      <p>appd is the wrapper that closes both gaps. One config per app, generation and management from one place, the familiar command shape (<code>status</code>, <code>restart</code>, <code>enable</code>), a TUI when you want to watch the estate, and group operations that actually work: <code>appd restart all</code>. Call it the Swiss army knife for services on a single box.</p>
+      <p>Security is provisioned first, not bolted on. A dedicated <code>appd-&lt;app&gt;</code> account, a private writable state directory, <code>ProtectSystem=strict</code>, <code>ProtectHome</code>, <code>PrivateDevices</code>, <code>NoNewPrivileges</code>. Every exception is a line in the JSON and a line in <code>appd diff</code>.</p>
+      <p>If you're using cloud services and containers, great. If you're running long-lived services on a Linux box, this is for you.</p>
+      <p>appd is a CLI today; a daemon is planned as a mode of the same binary. Until then, systemd is the daemon, and the unit files are the state.</p>
     </section>
 
     <section aria-labelledby="limits">
@@ -230,7 +239,7 @@ sudo appd start sundial</code></pre>
   </main>
 
   <footer class="foot shell">
-    <p>appd 0.2.5 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p>appd 0.2.6 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
     <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
   </footer>
