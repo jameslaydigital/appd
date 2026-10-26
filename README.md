@@ -126,18 +126,41 @@ directories. Per-app teardown is `sudo appctl remove <app>`.
 
 ### Distributing it
 
+#### An artifact for a server without a toolchain
+
+```bash
+make dist
+# target/dist/appctl-0.1.0-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+```
+
+`make dist` builds a **static musl binary** for `TARGET` (default
+`x86_64-unknown-linux-musl`) and packages it with the man page, completions, README, tutorial and an
+`install.sh` that honours `PREFIX`/`DESTDIR` and supports `--uninstall`. Static means there is no
+glibc version to match:
+
+```bash
+scp target/dist/appctl-*-x86_64-unknown-linux-musl.tar.gz server:/tmp/
+ssh server 'cd /tmp && tar xzf appctl-*.tar.gz && sudo ./appctl-*/install.sh'
+```
+
+For an ARM server, `TARGET=aarch64-unknown-linux-musl` needs a cross linker, so `cargo-zigbuild`
+(`cargo install cargo-zigbuild`, then `cargo zigbuild --target …`) or a CI runner of the same
+architecture is the easy path. If you'd rather match the host libc, `TARGET=x86_64-unknown-linux-gnu`
+works when the server's glibc is at least as new as the build machine's.
+
+#### Packages and releases
+
 appctl links libc but no systemd libraries — it drives `systemctl`, `journalctl` and `useradd` as
 subprocesses — so packaging is mostly about producing the artifact:
 
 ```bash
-cargo install cargo-deb && cargo deb                          # .deb for Debian/Ubuntu
-cargo build --release --target x86_64-unknown-linux-musl      # fully static binary
+cargo install cargo-deb && cargo deb           # .deb for Debian/Ubuntu
 ```
 
 For release automation, `cargo-dist` generates shell installers, archives and a GitHub release once
-the project lives in a git repository with tags. Any channel should ship three things: the binary,
-`appctl.1` from `make man`, and the completion files from `make completions`. Both are generated
-from the clap definitions, so they cannot drift from the CLI.
+the project lives in a git repository with tags. Any channel should ship the binary, `appctl.1` from
+`make man`, and the completion files from `make completions`. Both are generated from the clap
+definitions, so they cannot drift from the CLI.
 
 ## Usage
 
