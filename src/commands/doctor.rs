@@ -2,11 +2,11 @@
 
 use std::fs;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 
-use crate::commands::plural;
+use crate::commands::{binary_version, in_system_path, plural};
 use crate::{naming, paths, registry, systemd, unit};
 
 enum Finding {
@@ -34,6 +34,34 @@ pub fn run() -> Result<i32> {
             registry.dir.display()
         );
         warnings += 1;
+    }
+
+    // Two appd binaries (the cargo copy and /usr/local/bin) drifting apart is a real hazard:
+    // `sudo appd` can render different units than the appd you just ran.
+    let current_version = env!("CARGO_PKG_VERSION");
+    let current_exe = std::env::current_exe().ok();
+    let drift: Vec<(PathBuf, String)> = other_system_copies(current_exe.as_deref())
+        .into_iter()
+        .filter(|(_, version)| version != current_version)
+        .collect();
+    if !drift.is_empty() {
+        println!("binaries");
+        let current_is_system = current_exe.as_deref().is_some_and(in_system_path);
+        for (path, version) in &drift {
+            println!(
+                "  ⚠ {} is {version}, this binary is {current_version}",
+                path.display()
+            );
+            if current_is_system {
+                println!(
+                    "      fix: update or remove {}, so `appd` means one version",
+                    path.display()
+                );
+            } else if let Some(exe) = &current_exe {
+                println!("      fix: sudo {} install", exe.display());
+            }
+            warnings += 1;
+        }
     }
 
     for app in &registry.apps {
@@ -100,6 +128,38 @@ pub fn run() -> Result<i32> {
     );
 
     Ok(if problems > 0 { 1 } else { 0 })
+}
+
+/// Other `appd` binaries on root's PATH, excluding the one running this check.
+fn other_system_copies(current: Option<&Path>) -> Vec<(PathBuf, String)> {
+    const CANDIDATES: &[&str] = &[
+        "/usr/local/bin/appd",
+        "/usr/bin/appd",
+        "/bin/appd",
+        "/usr/local/sbin/appd",
+        "/usr/sbin/appd",
+        "/sbin/appd",
+    ];
+
+    copies_at(CANDIDATES, current)
+}
+
+fn copies_at(candidates: &[&str], current: Option<&Path>) -> Vec<(PathBuf, String)> {
+    let current = current.and_then(|path| fs::canonicalize(path).ok());
+    let mut found = Vec::new();
+    for candidate in candidates {
+        let path = PathBuf::from(candidate);
+        if !path.is_file() {
+            continue;
+        }
+        if current.is_some() && fs::canonicalize(&path).ok() == current {
+            continue;
+        }
+        if let Some(version) = binary_version(&path) {
+            found.push((path, version));
+        }
+    }
+    found
 }
 
 fn inspect(app: &registry::App, managing: bool) -> Vec<Finding> {
@@ -310,5 +370,21 @@ mod tests {
             mask_for(&meta, uid.wrapping_add(1), gid.wrapping_add(1)),
             0o007
         );
+    }
+
+    #[test]
+    fn finds_other_copies_and_their_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("appd");
+        fs::write(&path, "#!/bin/sh\necho 'appd 9.9.9'\n").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+        let candidates = [path.to_str().unwrap()];
+
+        let found = copies_at(&candidates, None);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].1, "9.9.9");
+
+        // The running binary is not reported against itself.
+        assert!(copies_at(&candidates, Some(&path)).is_empty());
     }
 }

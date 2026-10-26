@@ -182,6 +182,15 @@ fn install_and_uninstall_into_a_prefix() {
     );
     assert!(fs::read_to_string(&man).unwrap().contains(".TH appd"));
 
+    // Installing over an existing copy says what it replaced.
+    let again = fixture.run(&["install", "--prefix", prefix_arg]);
+    assert!(again.status.success(), "{}", stderr(&again));
+    assert!(
+        stdout(&again).contains("Replaced appd"),
+        "{}",
+        stdout(&again)
+    );
+
     // The copied binary runs.
     let version = Command::new(&bin).arg("--version").output().unwrap();
     assert!(version.status.success());

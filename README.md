@@ -97,7 +97,7 @@ One practical note: `~/.cargo/bin` is usually not on `sudo`'s `secure_path`, and
 If you have a release tarball, its `install.sh` does the whole job:
 
 ```bash
-sudo ./appd-0.2.3-x86_64-unknown-linux-musl/install.sh
+sudo ./appd-0.2.4-x86_64-unknown-linux-musl/install.sh
 ```
 
 With a bare binary, let it install itself:
@@ -149,6 +149,8 @@ sudo appd diff
 sudo appd apply all
 ```
 
+`appd doctor` warns if the two copies ever disagree, so a missed self-install does not go unnoticed.
+
 To remove the installed files:
 
 ```bash
@@ -165,7 +167,7 @@ directories. Per-app teardown is `sudo appd remove <app>`.
 
 ```bash
 make dist
-# target/dist/appd-0.2.3-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+# target/dist/appd-0.2.4-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
 ```
 
 `make dist` builds a **static musl binary** for `TARGET` (default
@@ -524,6 +526,7 @@ Checks include:
 - drift: a managed unit that differs from what the current config would generate
 - enablement drift: installed but not enabled, or enabled but not installed
 - provisioned user missing
+- a second `appd` on root's PATH at a different version (the cargo copy vs `/usr/local/bin`)
 - journald unavailable, or the unit's output not reaching the journal
 
 Exit status is non-zero when any problem is found, so it can be used in scripts.

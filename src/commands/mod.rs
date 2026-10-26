@@ -58,6 +58,38 @@ pub fn run(cli: Cli) -> Result<i32> {
     }
 }
 
+/// Directories on sudo's default secure_path.
+const SYSTEM_DIRS: &[&str] = &[
+    "/usr/local/sbin",
+    "/usr/local/bin",
+    "/usr/sbin",
+    "/usr/bin",
+    "/sbin",
+    "/bin",
+];
+
+pub(crate) fn in_system_path(path: &std::path::Path) -> bool {
+    path.parent()
+        .is_some_and(|parent| SYSTEM_DIRS.iter().any(|dir| std::path::Path::new(dir) == parent))
+}
+
+/// Version reported by an `appd --version` at `path`, if it runs and looks like us.
+pub(crate) fn binary_version(path: &std::path::Path) -> Option<String> {
+    let output = std::process::Command::new(path)
+        .arg("--version")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let mut words = text.split_whitespace();
+    if words.next() != Some("appd") {
+        return None;
+    }
+    words.next().map(str::to_string)
+}
+
 /// The command to run something as root, including how to make it sudo-accessible when the binary
 /// lives outside the system path (`cargo install` puts it in `~/.cargo/bin`, which sudo does not
 /// search).
@@ -78,19 +110,7 @@ fn hint_for(exe: &std::path::Path, args: &str) -> String {
         format!("sudo {name} {args}")
     };
 
-    // The default sudo secure_path on Linux distributions.
-    const SYSTEM_DIRS: &[&str] = &[
-        "/usr/local/sbin",
-        "/usr/local/bin",
-        "/usr/sbin",
-        "/usr/bin",
-        "/sbin",
-        "/bin",
-    ];
-    let reachable = exe
-        .parent()
-        .is_some_and(|parent| SYSTEM_DIRS.iter().any(|dir| std::path::Path::new(dir) == parent));
-    if reachable {
+    if in_system_path(exe) {
         return sudo;
     }
 

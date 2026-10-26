@@ -52,6 +52,11 @@ pub fn run(prefix: &Path, destdir: &Path, uninstall: bool) -> Result<i32> {
         .ok()
         .zip(fs::canonicalize(&bin).ok())
         .is_some_and(|(source, target)| source == target);
+    let previous = if bin.is_file() && !already_there {
+        crate::commands::binary_version(&bin)
+    } else {
+        None
+    };
     if !already_there {
         let bytes =
             fs::read(&exe).with_context(|| format!("cannot read {}", exe.display()))?;
@@ -63,7 +68,10 @@ pub fn run(prefix: &Path, destdir: &Path, uninstall: bool) -> Result<i32> {
     write_file(&zsh, &generate::completions_text(Shell::Zsh), 0o644)?;
     write_file(&fish, &generate::completions_text(Shell::Fish), 0o644)?;
 
-    println!("Installed appd to {}", bin.display());
+    match previous {
+        Some(version) => println!("Replaced appd {version} at {}", bin.display()),
+        None => println!("Installed appd to {}", bin.display()),
+    }
     println!("  man page:    {}", man.display());
     println!("  completions: bash, zsh, fish");
 
