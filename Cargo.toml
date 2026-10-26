@@ -1,10 +1,11 @@
 [package]
 name = "appd"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2024"
 description = "A thin, hardened frontend for systemd"
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/jameslaydigital/appd"
 rust-version = "1.85"
 keywords = ["systemd", "cli", "services", "hardening", "process-manager"]
 categories = ["command-line-utilities", "os"]

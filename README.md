@@ -97,7 +97,7 @@ One practical note: `~/.cargo/bin` is usually not on `sudo`'s `secure_path`, and
 If you have a release tarball, its `install.sh` does the whole job:
 
 ```bash
-sudo ./appd-0.2.4-x86_64-unknown-linux-musl/install.sh
+sudo ./appd-0.2.5-x86_64-unknown-linux-musl/install.sh
 ```
 
 With a bare binary, let it install itself:
@@ -167,7 +167,7 @@ directories. Per-app teardown is `sudo appd remove <app>`.
 
 ```bash
 make dist
-# target/dist/appd-0.2.4-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+# target/dist/appd-0.2.5-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
 ```
 
 `make dist` builds a **static musl binary** for `TARGET` (default
