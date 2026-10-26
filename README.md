@@ -265,6 +265,45 @@ Running services are still using the previous units. Restart or reload them to p
 `--prune` stops, disables, and deletes managed units whose config has gone away. It does not
 delete the app's user or state directory — that stays with `appctl remove`.
 
+## Migrating an existing unit
+
+appctl writes `appctl-<app>.service`, so it never overwrites the hand-written unit you're replacing.
+Both units can exist at once, which also means both can try to bind the same port. The safe order:
+
+1. Write `/etc/appctl/<app>.json` and run `sudo appctl doctor` — it reports missing paths, env files
+   and executables before anything is installed.
+2. `sudo appctl apply <app>` — writes the new unit and reloads systemd; starts nothing.
+3. `sudo systemctl disable --now <app>.service` — stop the incumbent.
+4. `sudo appctl enable <app> && sudo appctl start <app>`.
+5. Check `sudo appctl status <app>`, then delete the old unit file and run
+   `sudo systemctl daemon-reload`.
+
+Translating the directives:
+
+| Hand-written unit | Config |
+| --- | --- |
+| `User=` / `Group=` | `user` / `group`; omit both to provision an app-specific account |
+| `WorkingDirectory=` | `working_directory` |
+| `ExecStart=` | `exec` + `args` |
+| `Environment=` | `environment` |
+| `EnvironmentFile=` | `environment_file` |
+| `Restart=` / `RestartSec=` | `restart` / `restart_sec` |
+| `UMask=` | `umask` |
+| `ReadWritePaths=` | `permissions.write` |
+| `RestrictAddressFamilies=` with inet | `permissions.network: true` |
+| `After=network.target` | nothing; `permissions.network` adds `network-online.target` |
+| `NoNewPrivileges=`, `Protect*`, `Private*`, `Restrict*` | defaults — no need to repeat them |
+
+Two differences bite in practice:
+
+- **`ProtectSystem=strict` is the default**, stricter than `ProtectSystem=full`. Anything the service
+  writes must be in `permissions.write` (or its state directory), and those paths must already exist,
+  or it fails with `226/NAMESPACE` or `EROFS`.
+- **`MemoryDenyWriteExecute=yes` is the default** and breaks JIT runtimes — Node/V8 dies with
+  `SIGTRAP` at startup. Set `"executable_memory": true` for those services.
+
+There is no global switch to turn hardening off; the only opt-outs are the specific permissions.
+
 ## Configuration
 
 One file per application, named after the app: `/etc/appctl/goal-tracker.json` becomes
