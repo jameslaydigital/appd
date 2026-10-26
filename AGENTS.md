@@ -159,6 +159,9 @@ the only JS. `site/assets/site.js` mirrors `src/unit.rs`; change both together, 
 static fallback unit in `site/index.html` from a real `appd apply` when the renderer changes.
 `site/404.html` uses `<base href="/appd/">` so assets resolve at arbitrary 404 paths. Deploy is
 `.github/workflows/pages.yml` with current action majors; Pages is configured for workflow builds.
+The workflow stamps `?v=<commit>` onto `tokens.css`, `site.css`, and `site.js` in the uploaded
+artifact. Pages serves both HTML and assets with `max-age=600`, so without the stamp a cached page
+can pair with an old stylesheet; do not hand-edit those query strings in `site/`.
 
 ## Roadmap / open work
 

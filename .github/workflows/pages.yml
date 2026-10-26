@@ -26,6 +26,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
+      # GitHub Pages serves HTML and assets with max-age=600 and no build step rewrites
+      # their URLs, so a cached HTML file can pair with an old stylesheet. Stamp the
+      # asset URLs per commit; the next page fetch gets matching CSS and JS.
+      - name: Stamp asset URLs with the commit
+        run: |
+          short="${GITHUB_SHA::8}"
+          find site -name '*.html' -print0 | xargs -0 sed -i \
+            -e "s|href=\"tokens.css\"|href=\"tokens.css?v=${short}\"|g" \
+            -e "s|href=\"assets/site.css\"|href=\"assets/site.css?v=${short}\"|g" \
+            -e "s|src=\"assets/site.js\"|src=\"assets/site.js?v=${short}\"|g"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
