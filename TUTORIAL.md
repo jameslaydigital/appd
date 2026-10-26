@@ -12,13 +12,14 @@ because that distinction is part of the design.
 ## 0. Install
 
 ```bash
-cargo build --release
-sudo install -Dm755 target/release/appd /usr/local/bin/appd
+cargo install --locked appd        # or, from this checkout: cargo install --path .
+sudo "$(command -v appd)" install
 
 appd --version
 systemctl is-system-running        # expect "running", or "degraded" with a reason
 ```
 
+`install` copies the binary, man page, and completions to `/usr/local`, and creates `/etc/appd`.
 `degraded` is fine — it means some *other* unit failed. appd only ever touches its own.
 
 ### Where things live
@@ -77,7 +78,6 @@ its ownership fixed after `apply` creates the account.
 ## 2. The first config
 
 ```bash
-sudo appd init
 sudo tee /etc/appd/sundial-api.json >/dev/null <<'EOF'
 {
   "description": "Sundial notes API",
@@ -713,7 +713,9 @@ left behind by a deleted config, it shows up as an orphan and is cleaned with
 
 | Command | Does |
 | --- | --- |
-| `appd init` | create `/etc/appd` and print next steps; idempotent |
+| `appd install-app DIR` | copy `DIR/.appd.conf` to `/etc/appd/<project>.json` |
+| `appd skills install [DIR]` | write `.agents/skills/appd/SKILL.md` for editor agents |
+| `appd init` | create `/etc/appd` without installing; idempotent |
 | `appd install [--prefix DIR] [--uninstall]` | install the binary, man page and completions |
 | `appd apply [APP…\|all] [--prune] [--yes]` | render units, install, `daemon-reload` |
 | `appd diff [APP…\|all]` | show drift; exit 1 if any |

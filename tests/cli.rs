@@ -203,6 +203,68 @@ fn install_and_uninstall_into_a_prefix() {
 }
 
 #[test]
+fn skills_install_writes_the_editor_skill() {
+    let fixture = Fixture::bare();
+    let project = fixture.root.path().join("notes");
+    fs::create_dir_all(&project).unwrap();
+
+    let output = fixture.run(&["skills", "install", project.to_str().unwrap()]);
+    assert!(output.status.success(), "{}", stderr(&output));
+
+    let skill = project.join(".agents/skills/appd/SKILL.md");
+    assert!(skill.is_file(), "skill was not written");
+    let text = fs::read_to_string(&skill).unwrap();
+    assert!(text.contains("name: appd"), "{text}");
+    assert!(text.contains(".appd.conf"), "{text}");
+}
+
+#[test]
+fn install_app_copies_the_config_under_the_project_name() {
+    let fixture = Fixture::bare();
+    let project = fixture.root.path().join("sundial");
+    fs::create_dir_all(&project).unwrap();
+    fs::write(
+        project.join(".appd.conf"),
+        r#"{ "exec": "/bin/true", "permissions": { "network": true } }"#,
+    )
+    .unwrap();
+
+    let output = fixture.run(&["install-app", project.to_str().unwrap()]);
+    assert!(output.status.success(), "{}", stderr(&output));
+
+    let destination = fixture.config_dir().join("sundial.json");
+    assert!(destination.is_file(), "config was not installed");
+    assert!(
+        fs::read_to_string(&destination).unwrap().contains("/bin/true"),
+        "config content was not copied"
+    );
+    assert_eq!(
+        fs::metadata(&destination).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+
+    let again = fixture.run(&["install-app", project.to_str().unwrap()]);
+    assert!(again.status.success(), "{}", stderr(&again));
+    assert!(
+        stdout(&again).contains("already installed"),
+        "{}",
+        stdout(&again)
+    );
+}
+
+#[test]
+fn install_app_rejects_an_invalid_directory_name() {
+    let fixture = Fixture::bare();
+    let project = fixture.root.path().join("Sundial API");
+    fs::create_dir_all(&project).unwrap();
+    fs::write(project.join(".appd.conf"), r#"{ "exec": "/bin/true" }"#).unwrap();
+
+    let output = fixture.run(&["install-app", project.to_str().unwrap()]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("--name"), "{}", stderr(&output));
+}
+
+#[test]
 fn one_bad_config_writes_nothing() {
     let fixture = Fixture::new(&[
         ("good", r#"{ "exec": "/bin/true" }"#),

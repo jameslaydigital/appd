@@ -19,10 +19,10 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Create the config directory and print the next steps.
+    /// Create /etc/appd without installing the binary. `install` also does this.
     Init,
 
-    /// Install appd system-wide: binary, man page and shell completions.
+    /// Install appd system-wide: binary, man page, completions, and /etc/appd.
     Install {
         #[arg(long, default_value = "/usr/local", value_name = "DIR")]
         prefix: std::path::PathBuf,
@@ -34,6 +34,28 @@ pub enum Command {
         /// Remove the installed files instead.
         #[arg(long)]
         uninstall: bool,
+    },
+
+    /// Install the appd skill into a project for editor agents.
+    Skills {
+        #[command(subcommand)]
+        action: SkillsAction,
+    },
+
+    /// Install a project's .appd.conf into /etc/appd.
+    #[command(name = "install-app")]
+    InstallApp {
+        /// Project directory, or the .appd.conf itself.
+        #[arg(default_value = ".", value_name = "DIR")]
+        path: std::path::PathBuf,
+
+        /// Override the app name; defaults to the project directory name.
+        #[arg(long, value_name = "NAME")]
+        name: Option<String>,
+
+        /// Run `appd apply` after copying the config.
+        #[arg(long)]
+        apply: bool,
     },
 
     /// Render configs into systemd units, install them, and reload systemd.
@@ -143,4 +165,14 @@ pub struct LogArgs {
     /// Filter by syslog priority, e.g. `err`, `warning`.
     #[arg(short = 'p', long, value_name = "PRIORITY")]
     pub priority: Option<String>,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum SkillsAction {
+    /// Write .agents/skills/appd/SKILL.md into a project.
+    Install {
+        /// Project directory. Defaults to the current directory.
+        #[arg(default_value = ".", value_name = "DIR")]
+        dir: std::path::PathBuf,
+    },
 }

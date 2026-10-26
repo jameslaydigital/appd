@@ -8,6 +8,11 @@ and `appd` generates the systemd unit, installs it, and gives you short commands
 you actually perform day to day. Today it is a CLI and nothing else — there is no background
 process. A daemon is planned, and will be a mode of this same binary.
 
+systemctl is exact but repetitive: no group restart, unit names to remember, hardening lines copied
+from somewhere until the service starts. supervisorctl gives you group control, then asks you to
+give up systemd's sandbox. appd is the wrapper that closes both gaps: one config per app, one place
+to generate and manage services, the familiar command shape, a TUI, and security provisioned first.
+
 New here? [TUTORIAL.md](TUTORIAL.md) walks through a full deployment — first config, day-to-day
 operation, a second service, and the failures you'll actually hit. The same material is on the
 [website](https://jameslaydigital.github.io/appd/): [tutorial](https://jameslaydigital.github.io/appd/tutorial.html)
@@ -58,8 +63,9 @@ lands in `~/.cargo/bin`, which `sudo` does not search, so install it system-wide
 sudo "$(command -v appd)" install
 ```
 
-That copies the binary to `/usr/local/bin` and writes the man page and shell completions; from then
-on `sudo appd init` works. `appd install --prefix ~/.local` does a user-local install instead.
+That copies the binary to `/usr/local/bin`, writes the man page and shell completions, and creates
+`/etc/appd` (mode `0755`). From then on `sudo appd …` works. `appd install --prefix ~/.local`
+does a user-local install instead and does not create the system config directory.
 
 ### From a source checkout
 
@@ -99,7 +105,7 @@ One practical note: `~/.cargo/bin` is usually not on `sudo`'s `secure_path`, and
 If you have a release tarball, its `install.sh` does the whole job:
 
 ```bash
-sudo ./appd-0.2.5-x86_64-unknown-linux-musl/install.sh
+sudo ./appd-0.2.6-x86_64-unknown-linux-musl/install.sh
 ```
 
 With a bare binary, let it install itself:
@@ -112,15 +118,15 @@ Either way you get the binary in `/usr/local/bin`, `appd.1` in `share/man/man1`,
 fish completions. `--prefix` and `--destdir` are supported for non-standard layouts and packaging,
 and `--uninstall` removes all five files.
 
-`appd init` creates `/etc/appd` (mode `0755`) and is idempotent, so none of these installation
-routes need to. `apply` never creates the directory; if it is missing, it tells you to run `init`.
+`appd install` creates `/etc/appd` (mode `0755`) when running as root. `appd init` does the same
+without installing the binary, for hosts where appd is already present. Both are idempotent.
+`apply` never creates the directory; if it is missing, it tells you to run `init`.
 
 ### Verify
 
 ```bash
 appd --version
 systemctl is-system-running      # expect "running" or "degraded"
-sudo appd init                 # create /etc/appd; safe to re-run
 sudo appd doctor               # "0 apps checked" on a fresh install
 ```
 
@@ -169,7 +175,7 @@ directories. Per-app teardown is `sudo appd remove <app>`.
 
 ```bash
 make dist
-# target/dist/appd-0.2.5-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+# target/dist/appd-0.2.6-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
 ```
 
 `make dist` builds a **static musl binary** for `TARGET` (default
@@ -206,7 +212,10 @@ definitions, so they cannot drift from the CLI.
 ## Usage
 
 ```bash
-sudo appd init                    # create /etc/appd, then exit
+appd init                         # create /etc/appd without installing the binary (optional)
+appd install-app .                # copy ./.appd.conf to /etc/appd/<project>.json
+appd skills install               # write .agents/skills/appd/SKILL.md for editor agents
+
 appd apply all                    # render /etc/appd/*.json into systemd units, then daemon-reload
 appd apply all --prune            # also stop, disable, and delete managed units whose config is gone
 appd apply goal-tracker           # same, for a single app
@@ -314,8 +323,8 @@ appd writes `appd-<app>.service`, so it never overwrites the hand-written unit y
 Both units can exist at once, which also means both can try to bind the same port. The safe order:
 
 1. Write `/etc/appd/<app>.json` and run `sudo appd doctor` — it reports missing paths, env files
-   and executables before anything is installed. If `/etc/appd` doesn't exist yet, run
-   `sudo appd init` first.
+   and executables before anything is installed. If `/etc/appd` doesn't exist yet, `appd install`
+   creates it, or run `sudo appd init`.
 2. `sudo appd apply <app>` — writes the new unit and reloads systemd; starts nothing.
 3. `sudo systemctl disable --now <app>.service` — stop the incumbent.
 4. `sudo appd enable <app> && sudo appd start <app>`.
@@ -351,7 +360,8 @@ There is no global switch to turn hardening off; the only opt-outs are the speci
 ## Configuration
 
 One file per application, named after the app: `/etc/appd/goal-tracker.json` becomes
-`appd-goal-tracker.service`. `appd init` creates the directory if it doesn't exist.
+`appd-goal-tracker.service`. `appd install` creates the directory; `appd init` does the same
+without installing the binary.
 
 App names are capped at 27 characters, because the derived account `appd-<app>` has to fit
 Linux's 32-character username limit. `apply` rejects longer names before doing anything.

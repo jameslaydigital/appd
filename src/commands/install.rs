@@ -72,8 +72,18 @@ pub fn run(prefix: &Path, destdir: &Path, uninstall: bool) -> Result<i32> {
         Some(version) => println!("Replaced appd {version} at {}", bin.display()),
         None => println!("Installed appd to {}", bin.display()),
     }
+    let mut created_config = false;
+    if destdir.as_os_str().is_empty() && systemd::is_root() {
+        created_config = crate::paths::ensure_config_dir()?;
+    }
+
     println!("  man page:    {}", man.display());
     println!("  completions: bash, zsh, fish");
+    if created_config {
+        println!("  config dir:  /etc/appd (created)");
+    } else if destdir.as_os_str().is_empty() && crate::paths::config_dir().is_dir() {
+        println!("  config dir:  {}", crate::paths::config_dir().display());
+    }
 
     if root == Path::new("/usr/local") {
         println!();

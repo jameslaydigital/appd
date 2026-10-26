@@ -4,6 +4,8 @@ pub mod doctor;
 pub mod generate;
 pub mod init;
 pub mod install;
+pub mod install_app;
+pub mod skills;
 pub mod lifecycle;
 pub mod logs;
 pub mod remove;
@@ -25,6 +27,12 @@ pub fn run(cli: Cli) -> Result<i32> {
             destdir,
             uninstall,
         }) => install::run(&prefix, &destdir.unwrap_or_default(), uninstall),
+        Some(Command::Skills { action }) => match action {
+            crate::cli::SkillsAction::Install { dir } => skills::install(&dir),
+        },
+        Some(Command::InstallApp { path, name, apply }) => {
+            install_app::run(&path, name.as_deref(), apply)
+        }
         Some(Command::Apply { apps, prune }) => apply::run(&apps, prune, cli.yes),
         Some(Command::Status { apps }) => status::run(&apps),
         Some(Command::Diff { apps }) => diff::run(&apps),
