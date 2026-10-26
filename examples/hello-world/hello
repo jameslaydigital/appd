@@ -1,0 +1,67 @@
+#!/bin/sh
+# appctl demonstration service.
+#
+# Logs a heartbeat to stdout, writes a simulated problem to stderr every tenth beat,
+# and logs a line when it receives SIGHUP so `appctl reload` has something to show.
+
+set -u
+
+interval=5
+greeting=${GREETING:-hello}
+state_dir=${STATE_DIR:-/var/lib/appctl-hello-world}
+
+usage() {
+    echo "usage: hello [--interval SECONDS]"
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --interval)
+            interval=${2:-5}
+            shift 2
+            ;;
+        --interval=*)
+            interval=${1#*=}
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "hello: unknown argument: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+trap 'echo "reloaded: greeting is still \"$greeting\" (pid $$)"' HUP
+
+beats_file="$state_dir/beats"
+mkdir -p "$state_dir" 2>/dev/null || true
+[ -d "$state_dir" ] || echo "hello: cannot use state dir $state_dir, continuing without it" >&2
+
+echo "hello-world starting: pid $$, every ${interval}s, greeting: $greeting"
+
+beats=0
+while :; do
+    beats=$((beats + 1))
+    echo "$greeting #$beats"
+
+    if [ -d "$state_dir" ]; then
+        echo "$beats" >"$beats_file" 2>/dev/null || true
+    fi
+
+    # Every tenth beat looks like a failure in `appctl error-logs`. journald records
+    # plain stderr at priority 6, so the line carries a syslog priority prefix: `<3>`
+    # is "err", and journald strips it from the stored message.
+    if [ $((beats % 10)) -eq 0 ]; then
+        echo "<3>simulated problem after $beats beats" >&2
+    fi
+
+    # Background the sleep so a SIGHUP is handled immediately instead of after the
+    # whole interval has elapsed.
+    sleep "$interval" &
+    wait $! 2>/dev/null || true
+done
