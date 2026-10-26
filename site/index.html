@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>appd — systemd application manager</title>
+  <meta name="description" content="appd turns one JSON file into a hardened systemd unit. Hardening by default, permissions by exception.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav-term">
+    <div class="shell nav-term__inner">
+      <a class="nav-term__brand" href="index.html" aria-current="page"><span class="nav-term__prompt" aria-hidden="true">&gt;</span> appd</a>
+      <nav class="nav-term__rail" aria-label="Primary">
+        <a href="tutorial.html">--tutorial</a>
+        <a href="reference.html">--reference</a>
+        <a href="https://github.com/jameslaydigital/appd">--github</a>
+        <a href="https://crates.io/crates/appd">--crates</a>
+      </nav>
+      <span class="nav-term__caret" aria-hidden="true">▮</span>
+      <details class="nav-term__mobile">
+        <summary><span aria-hidden="true">&gt;</span> menu</summary>
+        <nav aria-label="Primary mobile">
+          <a href="index.html" aria-current="page">--home</a>
+          <a href="tutorial.html">--tutorial</a>
+          <a href="reference.html">--reference</a>
+          <a href="https://github.com/jameslaydigital/appd">--github</a>
+          <a href="https://crates.io/crates/appd">--crates</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <section class="title" aria-labelledby="page-title">
+      <div class="title__text">
+        <h1 id="page-title">appd(1)</h1>
+        <p class="title__tagline">Systemd application manager</p>
+        <p class="title__meta">Version 0.2.5 · Linux · MIT</p>
+        <p class="lede">One JSON file in. One hardened systemd unit out.</p>
+      </div>
+
+    </section>
+
+    <section aria-labelledby="name">
+      <h2 id="name">Name</h2>
+      <p class="man-name"><strong>appd</strong> — describe a service in JSON; get a hardened systemd unit, a system account, and a state directory.</p>
+    </section>
+
+    <section aria-labelledby="synopsis">
+      <h2 id="synopsis">Synopsis</h2>
+      <div class="synopsis-grid">
+        <div>
+          <div class="code">
+            <div class="code__bar">
+              <span class="code__label">shell</span>
+              <button class="copy" type="button" data-copy="#install-code" aria-label="Copy install commands" aria-live="polite">Copy</button>
+            </div>
+            <pre id="install-code"><code>cargo install --locked appd
+sudo "$(command -v appd)" install
+sudo appd init</code></pre>
+          </div>
+          <p class="note">No Rust on the host? <a href="https://github.com/jameslaydigital/appd/releases/latest">Take the static binary</a>. It is a single file; copy it, run <code>appd install</code>, and continue.</p>
+        </div>
+        <figure class="palette">
+          <canvas id="xterm-palette" width="512" height="512" aria-hidden="true"></canvas>
+          <figcaption>xterm-256 · 256 colours · the accent is 208, <code>#ff8700</code>.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="quickstart">
+      <h2 id="quickstart">Quickstart</h2>
+      <ol class="steps">
+        <li>
+          <div>
+            <h3>Write one config.</h3>
+            <p>Save this as <code>/etc/appd/sundial.json</code>, mode <code>0600</code>. The filename is the app name.</p>
+            <div class="code">
+              <div class="code__bar">
+                <span class="code__label">json</span>
+                <button class="copy" type="button" data-copy="#config-code" aria-label="Copy example config" aria-live="polite">Copy</button>
+              </div>
+              <pre id="config-code"><code>{
+  <span class="tok-key">"description"</span>: <span class="tok-string">"Sundial notes API"</span>,
+  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/sundial/bin/sundial-api"</span>,
+  <span class="tok-key">"args"</span>: [<span class="tok-string">"--bind"</span>, <span class="tok-string">"127.0.0.1:8787"</span>],
+  <span class="tok-key">"restart"</span>: <span class="tok-string">"on-failure"</span>,
+  <span class="tok-key">"permissions"</span>: {
+    <span class="tok-key">"network"</span>: <span class="tok-num">true</span>
+  }
+}</code></pre>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Check it.</h3>
+            <p>Doctor reads the config without writing anything. It catches missing paths, env files, accounts, and unusable binaries.</p>
+            <div class="code">
+              <div class="code__bar">
+                <span class="code__label">shell</span>
+                <button class="copy" type="button" data-copy="#doctor-code" aria-label="Copy doctor command" aria-live="polite">Copy</button>
+              </div>
+              <pre id="doctor-code"><code>sudo appd doctor</code></pre>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Write the unit.</h3>
+            <p>Apply renders <code>/etc/systemd/system/appd-sundial.service</code> and reloads systemd. It starts nothing.</p>
+            <div class="code">
+              <div class="code__bar">
+                <span class="code__label">shell</span>
+                <button class="copy" type="button" data-copy="#apply-code" aria-label="Copy apply command" aria-live="polite">Copy</button>
+              </div>
+              <pre id="apply-code"><code>sudo appd apply sundial</code></pre>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div>
+            <h3>Start it.</h3>
+            <p>Enabling and starting are separate decisions, and separate commands.</p>
+            <div class="code">
+              <div class="code__bar">
+                <span class="code__label">shell</span>
+                <button class="copy" type="button" data-copy="#start-code" aria-label="Copy start commands" aria-live="polite">Copy</button>
+              </div>
+              <pre id="start-code"><code>sudo appd enable sundial
+sudo appd start sundial</code></pre>
+            </div>
+          </div>
+        </li>
+      </ol>
+      <p class="note">`apply` synchronizes unit files. It never restarts a running service. `appd diff` shows what would change; `appd restart` is the follow-up.</p>
+    </section>
+
+    <section aria-labelledby="description">
+      <h2 id="description">Description</h2>
+      <p class="lede">A systemd unit is a small security policy with a command attached. appd makes the policy the part you write first.</p>
+      <p>You describe the service once: binary, arguments, working directory, environment, the paths it may write, whether it may open a socket. appd renders that into a namespaced unit under <code>/etc/systemd/system/</code>, provisions an unprivileged account if you did not name one, and lets systemd run it.</p>
+      <p>There is no database and no agent. The config is the source, the unit is the artifact, and the journal is the log. <code>appd diff</code> compares the first two.</p>
+
+      <h3>What it removes</h3>
+      <dl class="facts">
+        <div>
+          <dt>unit-file archaeology</dt>
+          <dd>One JSON config per app, one generated unit, one predictable name.</dd>
+        </div>
+        <div>
+          <dt>hardening drift</dt>
+          <dd>The sandbox is closed by default. Every path, device, or socket is an explicit line in the config, visible in <code>appd diff</code>.</dd>
+        </div>
+        <div>
+          <dt>name collisions</dt>
+          <dd>Every unit is prefixed <code>appd-</code> and marked. appd refuses to overwrite a unit it did not write.</dd>
+        </div>
+        <div>
+          <dt>shared accounts</dt>
+          <dd>Each app gets an <code>appd-&lt;app&gt;</code> system account with no shell and no home.</dd>
+        </div>
+        <div>
+          <dt>stale units</dt>
+          <dd>Rename a config and the old unit is reported as an orphan; <code>appd apply --prune</code> removes it.</dd>
+        </div>
+        <div>
+          <dt>journalctl flags</dt>
+          <dd><code>appd logs</code> and <code>appd error-logs</code> instead of remembering <code>-u</code>, <code>-xe</code>, and <code>-p</code>.</dd>
+        </div>
+      </dl>
+
+      <h3>What a unit looks like</h3>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">appd-sundial.service · excerpt</span>
+        </div>
+        <pre><code><span class="tok-key">User</span>=appd-sundial
+<span class="tok-key">StateDirectory</span>=appd-sundial
+<span class="tok-key">ExecStart</span>=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787
+<span class="tok-key">ProtectSystem</span>=strict
+<span class="tok-key">ProtectHome</span>=yes
+<span class="tok-key">PrivateDevices</span>=yes
+<span class="tok-key">NoNewPrivileges</span>=yes
+<span class="tok-key">RestrictAddressFamilies</span>=AF_UNIX AF_INET
+<span class="tok-key">ReadWritePaths</span>=/srv/sundial/public</code></pre>
+      </div>
+      <p class="note">Excerpt. The generated unit also sets <code>Restart=</code>, journal output, and the rest of the hardening set.</p>
+    </section>
+
+    <section aria-labelledby="philosophy">
+      <h2 id="philosophy">Philosophy</h2>
+      <p class="creed">Hardening is the default. <strong>Permissions</strong> are the exception.</p>
+      <p>Most unit files are copied from a blog post and edited until the service starts. Hardening gets dropped along the way, because it is the part that makes the service fail. appd reverses the order: the sandbox is closed first, and every exception is a line you can read, review, and remove.</p>
+      <p>A service should be able to read its code and write its state directory. It should not be able to see other processes, modify the rest of the filesystem, or gain privileges. When it needs more, the config says so.</p>
+      <p>appd is a CLI today. A daemon is planned as a mode of the same binary, not as a second product. Until then, systemd is the daemon, and the unit files are the state.</p>
+    </section>
+
+    <section aria-labelledby="limits">
+      <h2 id="limits">What it is not</h2>
+      <ul class="limits">
+        <li>Not a service manager. systemd runs the service; appd writes the unit.</li>
+        <li>No <code>--user</code> units. System scope only.</li>
+        <li>No ordering between apps (<code>after</code> / <code>requires</code>) yet.</li>
+        <li>journald only; no file-backed logging or rotation to manage.</li>
+        <li>No AppArmor generation. It attaches an existing profile by name.</li>
+        <li>No telemetry, no account, no background process.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">See also</h2>
+      <ul class="see-also">
+        <li><a href="tutorial.html">--tutorial</a> <span>Deploy a service end to end.</span></li>
+        <li><a href="reference.html">--reference</a> <span>Every command and config field.</span></li>
+        <li><a href="https://github.com/jameslaydigital/appd">--github</a> <span>Source, issues, releases.</span></li>
+        <li><a href="https://crates.io/crates/appd">--crates</a> <span><code>cargo install appd</code>.</span></li>
+        <li><a href="https://github.com/jameslaydigital/appd/releases/latest">--releases</a> <span>Static tarball for hosts without Rust.</span></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot shell">
+    <p>appd 0.2.5 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
+    <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
+  </footer>
+</body>
+</html>

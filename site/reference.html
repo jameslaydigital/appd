@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reference — appd</title>
+  <meta name="description" content="appd command reference, configuration fields, filesystem layout, logging, and exit codes.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav-term">
+    <div class="shell nav-term__inner">
+      <a class="nav-term__brand" href="index.html"><span class="nav-term__prompt" aria-hidden="true">&gt;</span> appd</a>
+      <nav class="nav-term__rail" aria-label="Primary">
+        <a href="tutorial.html">--tutorial</a>
+        <a href="reference.html" aria-current="page">--reference</a>
+        <a href="https://github.com/jameslaydigital/appd">--github</a>
+        <a href="https://crates.io/crates/appd">--crates</a>
+      </nav>
+      <span class="nav-term__caret" aria-hidden="true">▮</span>
+      <details class="nav-term__mobile">
+        <summary><span aria-hidden="true">&gt;</span> menu</summary>
+        <nav aria-label="Primary mobile">
+          <a href="index.html">--home</a>
+          <a href="tutorial.html">--tutorial</a>
+          <a href="reference.html" aria-current="page">--reference</a>
+          <a href="https://github.com/jameslaydigital/appd">--github</a>
+          <a href="https://crates.io/crates/appd">--crates</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <header class="doc-head">
+      <h1 class="doc-title">Reference</h1>
+      <p class="lede">Commands, config fields, files, and the rules appd enforces. For the full tutorial, see <a href="tutorial.html">Tutorial</a>.</p>
+    </header>
+
+    <nav class="toc" aria-label="On this page">
+      <ol>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#configuration">Configuration</a></li>
+        <li><a href="#files">Files and names</a></li>
+        <li><a href="#logs">Logging</a></li>
+        <li><a href="#rules">Rules</a></li>
+        <li><a href="#exit">Exit codes</a></li>
+        <li><a href="#doctor">Doctor checks</a></li>
+        <li><a href="#tui">TUI keys</a></li>
+      </ol>
+    </nav>
+
+    <section aria-labelledby="commands">
+      <h2 id="commands">Commands</h2>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">Command</th><th scope="col">Does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Command"><code>appd init</code></td><td data-label="Does">Create <code>/etc/appd</code> (mode 0755) and print the next steps. Idempotent; no root needed if it already exists.</td></tr>
+            <tr><td data-label="Command"><code>appd install</code></td><td data-label="Does">Copy this binary to <code>/usr/local/bin</code>, write the man page and completions. <code>--prefix</code>, <code>--destdir</code>, <code>--uninstall</code>.</td></tr>
+            <tr><td data-label="Command"><code>appd apply [APP…|all]</code></td><td data-label="Does">Render configs, write units, <code>daemon-reload</code>. <code>--prune</code> removes orphaned units; <code>--yes</code> skips the all-confirmation.</td></tr>
+            <tr><td data-label="Command"><code>appd diff [APP…|all]</code></td><td data-label="Does">Show how installed units differ from their configs. Exits 1 on drift.</td></tr>
+            <tr><td data-label="Command"><code>appd doctor</code></td><td data-label="Does">Read-only preflight. Exits 1 when it finds a problem.</td></tr>
+            <tr><td data-label="Command"><code>appd status [APP…|all]</code></td><td data-label="Does">One table row per app, or a detail view for one app.</td></tr>
+            <tr><td data-label="Command"><code>appd start|stop|restart|reload</code></td><td data-label="Does">systemd verbs. <code>reload</code> uses the config’s <code>reload</code> command and refuses without one.</td></tr>
+            <tr><td data-label="Command"><code>appd enable|disable</code></td><td data-label="Does">Boot behaviour. Separate from <code>apply</code> and <code>start</code>.</td></tr>
+            <tr><td data-label="Command"><code>appd logs APP</code></td><td data-label="Does">Journal output. <code>-f</code>, <code>-n N</code>, <code>--since</code>, <code>-p LEVEL</code>.</td></tr>
+            <tr><td data-label="Command"><code>appd error-logs APP</code></td><td data-label="Does"><code>logs</code> with <code>-p err</code>. Empty if the app emits only priority 6.</td></tr>
+            <tr><td data-label="Command"><code>appd remove APP</code></td><td data-label="Does">Delete the unit, config, provisioned account, and state directory. <code>--keep-user</code>, <code>--keep-state</code>, <code>--yes</code>.</td></tr>
+            <tr><td data-label="Command"><code>appd man</code></td><td data-label="Does">Print the man page (roff) to stdout.</td></tr>
+            <tr><td data-label="Command"><code>appd completions SHELL</code></td><td data-label="Does">Print a completion script for bash, zsh, fish, elvish, or PowerShell.</td></tr>
+            <tr><td data-label="Command"><code>appd</code></td><td data-label="Does">Interactive TUI. Not available through a pipe; that prints <code>status all</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="configuration">
+      <h2 id="configuration">Configuration</h2>
+      <p>One file per app at <code>/etc/appd/&lt;app&gt;.json</code>. JSON is strict: unknown keys are errors, and one bad file aborts the whole apply before anything is written.</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">json</span>
+          <button class="copy" type="button" data-copy="#ref-config" aria-label="Copy example config" aria-live="polite">Copy</button>
+        </div>
+        <pre id="ref-config"><code>{
+  <span class="tok-key">"description"</span>: <span class="tok-string">"Sundial notes API"</span>,
+  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/sundial/bin/sundial-api"</span>,
+  <span class="tok-key">"args"</span>: [<span class="tok-string">"--bind"</span>, <span class="tok-string">"127.0.0.1:8787"</span>],
+  <span class="tok-key">"working_directory"</span>: <span class="tok-string">"/srv/sundial"</span>,
+  <span class="tok-key">"restart"</span>: <span class="tok-string">"on-failure"</span>,
+  <span class="tok-key">"environment_file"</span>: <span class="tok-string">"/etc/appd/sundial.env"</span>,
+  <span class="tok-key">"permissions"</span>: {
+    <span class="tok-key">"network"</span>: <span class="tok-num">true</span>,
+    <span class="tok-key">"write"</span>: [<span class="tok-string">"/srv/sundial/public"</span>]
+  }
+}</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">Field</th><th scope="col">Default</th><th scope="col">Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Field"><code>description</code></td><td data-label="Default">app name</td><td data-label="Notes"><code>Description=</code> in the unit.</td></tr>
+            <tr><td data-label="Field"><code>exec</code></td><td data-label="Default">required</td><td data-label="Notes">Absolute path to the binary.</td></tr>
+            <tr><td data-label="Field"><code>args</code></td><td data-label="Default"><code>[]</code></td><td data-label="Notes">Arguments passed to <code>exec</code>; quoted when they contain spaces.</td></tr>
+            <tr><td data-label="Field"><code>working_directory</code></td><td data-label="Default">state directory</td><td data-label="Notes">Absolute path.</td></tr>
+            <tr><td data-label="Field"><code>user</code></td><td data-label="Default"><code>appd-&lt;app&gt;</code></td><td data-label="Notes">Omit to provision the account. <code>"root"</code> is allowed but must be written explicitly.</td></tr>
+            <tr><td data-label="Field"><code>group</code></td><td data-label="Default">same as user</td><td data-label="Notes">Existing group name.</td></tr>
+            <tr><td data-label="Field"><code>restart</code></td><td data-label="Default"><code>on-failure</code></td><td data-label="Notes"><code>no</code>, <code>always</code>, <code>on-success</code>, <code>on-abnormal</code>, <code>on-abort</code>, <code>on-watchdog</code>.</td></tr>
+            <tr><td data-label="Field"><code>restart_sec</code></td><td data-label="Default">systemd (100 ms)</td><td data-label="Notes">Seconds between restarts.</td></tr>
+            <tr><td data-label="Field"><code>umask</code></td><td data-label="Default">systemd</td><td data-label="Notes">1–4 octal digits, e.g. <code>"0027"</code>.</td></tr>
+            <tr><td data-label="Field"><code>reload</code></td><td data-label="Default">none</td><td data-label="Notes">Argv array for <code>appd reload</code>; without it, reload refuses and points at restart.</td></tr>
+            <tr><td data-label="Field"><code>wanted_by</code></td><td data-label="Default"><code>["multi-user.target"]</code></td><td data-label="Notes">What <code>enable</code> links into.</td></tr>
+            <tr><td data-label="Field"><code>environment</code></td><td data-label="Default"><code>{}</code></td><td data-label="Notes">Inline variables. Secrets belong in an environment file.</td></tr>
+            <tr><td data-label="Field"><code>environment_file</code></td><td data-label="Default">none</td><td data-label="Notes">Path or array. Read by systemd as root; <code>0600</code> is fine.</td></tr>
+            <tr><td data-label="Field"><code>permissions.network</code></td><td data-label="Default"><code>false</code></td><td data-label="Notes">Opens <code>AF_INET</code>/<code>AF_INET6</code>. Unix sockets are always available.</td></tr>
+            <tr><td data-label="Field"><code>permissions.read</code></td><td data-label="Default"><code>[]</code></td><td data-label="Notes"><code>ReadOnlyPaths=</code>. Rarely needed under <code>ProtectSystem=strict</code>.</td></tr>
+            <tr><td data-label="Field"><code>permissions.write</code></td><td data-label="Default"><code>[]</code></td><td data-label="Notes"><code>ReadWritePaths=</code>. The path must exist or the unit fails with <code>226/NAMESPACE</code>.</td></tr>
+            <tr><td data-label="Field"><code>permissions.executable_memory</code></td><td data-label="Default"><code>false</code></td><td data-label="Notes">Disables <code>MemoryDenyWriteExecute</code> for JIT runtimes. Node/V8 dies with <code>SIGTRAP</code> without it.</td></tr>
+            <tr><td data-label="Field"><code>permissions.devices</code></td><td data-label="Default"><code>[]</code></td><td data-label="Notes"><code>DeviceAllow=</code> entries.</td></tr>
+            <tr><td data-label="Field"><code>permissions.apparmor</code></td><td data-label="Default">none</td><td data-label="Notes">Attaches an existing profile by name; appd does not generate one.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="files">
+      <h2 id="files">Files and names</h2>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">Thing</th><th scope="col">Path or value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Thing">Config</td><td data-label="Path"><code>/etc/appd/&lt;app&gt;.json</code> · <code>0600</code></td></tr>
+            <tr><td data-label="Thing">Unit</td><td data-label="Path"><code>/etc/systemd/system/appd-&lt;app&gt;.service</code> · <code>0644</code></td></tr>
+            <tr><td data-label="Thing">Account</td><td data-label="Path"><code>appd-&lt;app&gt;</code>, system UID, no shell, no home</td></tr>
+            <tr><td data-label="Thing">State</td><td data-label="Path"><code>/var/lib/appd-&lt;app&gt;</code>, created by systemd and owned by the account</td></tr>
+            <tr><td data-label="Thing">Marker</td><td data-label="Path"><code>X-Appd-Managed=1</code> in the unit; <code>apply</code> and <code>remove</code> refuse files without it</td></tr>
+            <tr><td data-label="Thing">Logs</td><td data-label="Path">journald, unit <code>appd-&lt;app&gt;.service</code></td></tr>
+            <tr><td data-label="Thing">Environment files</td><td data-label="Path">Wherever <code>environment_file</code> points; <code>0600</code> recommended</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="logs">
+      <h2 id="logs">Logging</h2>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">appd</th><th scope="col">journalctl</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="appd"><code>appd logs app</code></td><td data-label="journalctl"><code>journalctl -u appd-app.service</code></td></tr>
+            <tr><td data-label="appd"><code>appd logs app -f</code></td><td data-label="journalctl"><code>… -f</code></td></tr>
+            <tr><td data-label="appd"><code>appd logs app -n 200</code></td><td data-label="journalctl"><code>… -n 200</code></td></tr>
+            <tr><td data-label="appd"><code>appd logs app --since 1h</code></td><td data-label="journalctl"><code>… --since 1h</code></td></tr>
+            <tr><td data-label="appd"><code>appd error-logs app</code></td><td data-label="journalctl"><code>… -p err</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>journald records both stdout and stderr at priority 6. To make a line show up in <code>error-logs</code>, the app tags it with a syslog priority: <code>&lt;3&gt;</code> for <code>err</code>, <code>&lt;4&gt;</code> for <code>warning</code>. journald strips the prefix and stores the priority. Anything using <code>syslog(3)</code> or <code>sd_journal_print(LOG_ERR, …)</code> does this automatically.</p>
+    </section>
+
+    <section aria-labelledby="rules">
+      <h2 id="rules">Rules</h2>
+      <h3>Names</h3>
+      <p>App names come from the config filename: lowercase letters, digits, and dashes, up to 27 characters. <code>all</code> is reserved. The derived account has to fit Linux’s 32-character username limit, which is where 27 comes from (<code>appd-</code> is five).</p>
+      <h3>Root and non-root</h3>
+      <p><code>init</code>, <code>install</code>, <code>apply</code>, <code>remove</code>, and the service verbs need root. <code>status</code>, <code>logs</code>, <code>error-logs</code>, and the TUI work as any user. Configs are <code>0600</code>, so a non-root <code>status</code> takes app names from the directory and state from systemd; the notes column says <code>config unreadable, run as root</code>.</p>
+      <h3>Apply semantics</h3>
+      <p><code>apply</code> writes units and reloads systemd. It does not start, stop, enable, or restart. Those are separate commands, and the output names what still needs one.</p>
+      <h3>Collisions</h3>
+      <p>Every unit is prefixed <code>appd-</code> and carries the marker. appd refuses to overwrite a unit it did not write. Renaming a config leaves the old unit as an orphan; <code>apply --prune</code> removes it. The account and state directory are left for <code>appd remove</code>.</p>
+    </section>
+
+    <section aria-labelledby="exit">
+      <h2 id="exit">Exit codes</h2>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">Code</th><th scope="col">Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Code"><code>0</code></td><td data-label="Meaning">Success; for <code>diff</code>, no drift; for <code>doctor</code>, no problems.</td></tr>
+            <tr><td data-label="Code"><code>1</code></td><td data-label="Meaning">Failure, drift, or problems. Safe to use as a CI gate.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="doctor">
+      <h2 id="doctor">Doctor checks</h2>
+      <ul class="limits">
+        <li><code>exec</code> exists and is executable by the service account, including every parent directory.</li>
+        <li>Config mode and environment files; warns when secrets are group- or world-readable.</li>
+        <li>Permission paths and working directory exist.</li>
+        <li>The configured <code>reload</code> command exists.</li>
+        <li>The unit is installed, matches the config, and is enabled.</li>
+        <li>The provisioned account or the explicitly named <code>user</code>/<code>group</code> exists.</li>
+        <li>Orphaned units; a second <code>appd</code> on root’s PATH at a different version.</li>
+        <li>journald is available.</li>
+      </ul>
+      <p>It reports and exits; it never fixes or writes. The fix lines name the command that does.</p>
+    </section>
+
+    <section aria-labelledby="tui">
+      <h2 id="tui">TUI keys</h2>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">Key</th><th scope="col">Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Key"><code>j</code> / <code>k</code>, arrows</td><td data-label="Action">Move between apps.</td></tr>
+            <tr><td data-label="Key"><code>enter</code> / <code>l</code></td><td data-label="Action">Toggle the log pane, following the selected app.</td></tr>
+            <tr><td data-label="Key"><code>a</code></td><td data-label="Action">Apply configs: sync units and reload systemd. Does not restart.</td></tr>
+            <tr><td data-label="Key"><code>r</code> / <code>s</code></td><td data-label="Action">Restart or stop, with confirmation.</td></tr>
+            <tr><td data-label="Key"><code>t</code> / <code>e</code> / <code>x</code></td><td data-label="Action">Start, enable, or disable.</td></tr>
+            <tr><td data-label="Key"><code>/</code> <code>?</code> <code>q</code></td><td data-label="Action">Filter, help, quit.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Read-only sessions are marked in the header. Mutating keys print the sudo command instead of failing.</p>
+    </section>
+  </main>
+
+  <footer class="foot shell">
+    <p>appd 0.2.5 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
+    <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
+  </footer>
+</body>
+</html>

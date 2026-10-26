@@ -9,7 +9,9 @@ you actually perform day to day. Today it is a CLI and nothing else — there is
 process. A daemon is planned, and will be a mode of this same binary.
 
 New here? [TUTORIAL.md](TUTORIAL.md) walks through a full deployment — first config, day-to-day
-operation, a second service, and the failures you'll actually hit.
+operation, a second service, and the failures you'll actually hit. The same material is on the
+[website](https://jameslaydigital.github.io/appd/): [tutorial](https://jameslaydigital.github.io/appd/tutorial.html)
+and [reference](https://jameslaydigital.github.io/appd/reference.html).
 
 ## How It Works
 

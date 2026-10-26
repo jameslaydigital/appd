@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tutorial — appd</title>
+  <meta name="description" content="Deploy a service with appd: config, doctor, apply, logs, changes, and removal.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav-term">
+    <div class="shell nav-term__inner">
+      <a class="nav-term__brand" href="index.html"><span class="nav-term__prompt" aria-hidden="true">&gt;</span> appd</a>
+      <nav class="nav-term__rail" aria-label="Primary">
+        <a href="tutorial.html" aria-current="page">--tutorial</a>
+        <a href="reference.html">--reference</a>
+        <a href="https://github.com/jameslaydigital/appd">--github</a>
+        <a href="https://crates.io/crates/appd">--crates</a>
+      </nav>
+      <span class="nav-term__caret" aria-hidden="true">▮</span>
+      <details class="nav-term__mobile">
+        <summary><span aria-hidden="true">&gt;</span> menu</summary>
+        <nav aria-label="Primary mobile">
+          <a href="index.html">--home</a>
+          <a href="tutorial.html" aria-current="page">--tutorial</a>
+          <a href="reference.html">--reference</a>
+          <a href="https://github.com/jameslaydigital/appd">--github</a>
+          <a href="https://crates.io/crates/appd">--crates</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <header class="doc-head">
+      <h1 class="doc-title">Tutorial</h1>
+      <p class="lede">Deploy a real service from one config. The long version, with the migration edge cases, is in the repository’s <a href="https://github.com/jameslaydigital/appd/blob/main/TUTORIAL.md">TUTORIAL.md</a>.</p>
+    </header>
+
+    <nav class="toc" aria-label="On this page">
+      <ol>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#app">The app</a></li>
+        <li><a href="#config">The config</a></li>
+        <li><a href="#doctor">Doctor</a></li>
+        <li><a href="#apply">Apply, enable, start</a></li>
+        <li><a href="#logs">Logs</a></li>
+        <li><a href="#change">Change a config</a></li>
+        <li><a href="#remove">Remove</a></li>
+        <li><a href="#breaks">When it breaks</a></li>
+      </ol>
+    </nav>
+
+    <section aria-labelledby="install">
+      <h2 id="install">Install</h2>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-install" aria-label="Copy install commands" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-install"><code>cargo install --locked appd
+sudo "$(command -v appd)" install
+sudo appd init</code></pre>
+      </div>
+      <p>The second command copies the binary to <code>/usr/local/bin</code>, writes the man page, and installs completions. The third creates <code>/etc/appd</code> with mode <code>0755</code>; config files stay <code>0600</code> because they may hold secrets.</p>
+    </section>
+
+    <section aria-labelledby="app">
+      <h2 id="app">The app</h2>
+      <p>Sundial is a small notes API. It reads code and templates from <code>/srv/sundial</code>, writes rendered pages to <code>/srv/sundial/public</code>, and keeps credentials in an environment file.</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">layout</span>
+        </div>
+        <pre><code>/srv/sundial/
+├── bin/sundial-api
+├── templates/
+└── public/          <span class="tok-comment"># rendered pages; the API writes here</span></code></pre>
+      </div>
+      <p>Create the write directory and give it to the service account after the first <code>apply</code> creates that account. The unit opens the path; the filesystem still owns the permissions.</p>
+    </section>
+
+    <section aria-labelledby="config">
+      <h2 id="config">The config</h2>
+      <p>Save this as <code>/etc/appd/sundial.json</code>. The filename becomes the app name, the unit name, and the account name.</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">json</span>
+          <button class="copy" type="button" data-copy="#tut-config" aria-label="Copy example config" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-config"><code>{
+  <span class="tok-key">"description"</span>: <span class="tok-string">"Sundial notes API"</span>,
+  <span class="tok-key">"exec"</span>: <span class="tok-string">"/srv/sundial/bin/sundial-api"</span>,
+  <span class="tok-key">"args"</span>: [<span class="tok-string">"--bind"</span>, <span class="tok-string">"127.0.0.1:8787"</span>],
+  <span class="tok-key">"working_directory"</span>: <span class="tok-string">"/srv/sundial"</span>,
+  <span class="tok-key">"restart"</span>: <span class="tok-string">"on-failure"</span>,
+  <span class="tok-key">"reload"</span>: [<span class="tok-string">"/bin/kill"</span>, <span class="tok-string">"-HUP"</span>, <span class="tok-string">"$MAINPID"</span>],
+  <span class="tok-key">"environment_file"</span>: <span class="tok-string">"/etc/appd/sundial.env"</span>,
+  <span class="tok-key">"permissions"</span>: {
+    <span class="tok-key">"network"</span>: <span class="tok-num">true</span>,
+    <span class="tok-key">"write"</span>: [<span class="tok-string">"/srv/sundial/public"</span>]
+  }
+}</code></pre>
+      </div>
+      <p>There is no <code>user</code> field, so <code>apply</code> provisions <code>appd-sundial</code>. There is no state path, because systemd creates <code>/var/lib/appd-sundial</code> and makes it writable under <code>ProtectSystem=strict</code>.</p>
+      <p>The environment file is read by systemd as root, so it can stay <code>0600</code>:</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">/etc/appd/sundial.env</span>
+        </div>
+        <pre><code>DATABASE_URL=postgres://sundial@127.0.0.1/sundial
+SESSION_SECRET=replace-with-something-long</code></pre>
+      </div>
+    </section>
+
+    <section aria-labelledby="doctor">
+      <h2 id="doctor">Doctor</h2>
+      <p>Doctor is read-only. Run it before <code>apply</code>; it names what would fail at start time.</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-doctor" aria-label="Copy doctor command" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-doctor"><code>sudo appd doctor</code></pre>
+      </div>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">output</span>
+        </div>
+        <pre><code>sundial
+  ✗ environment file /etc/appd/sundial.env does not exist; the unit will fail to start
+  ✗ service account `appd-sundial` does not exist
+      fix: appd apply sundial
+  ⚠ appd-sundial.service is not installed
+      fix: appd apply sundial
+
+1 app checked, 2 problems, 1 warning, 0 orphans</code></pre>
+      </div>
+      <p>Create the environment file, then run doctor again. The account warning disappears after <code>apply</code>; the unit warning disappears after the unit is installed.</p>
+    </section>
+
+    <section aria-labelledby="apply">
+      <h2 id="apply">Apply, enable, start</h2>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-apply" aria-label="Copy apply commands" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-apply"><code>sudo appd apply sundial
+sudo appd enable sundial
+sudo appd start sundial</code></pre>
+      </div>
+      <p><code>apply</code> writes <code>/etc/systemd/system/appd-sundial.service</code>, provisions the account, and reloads systemd. It does not start or enable anything. Those are the next two commands, separately.</p>
+      <p>After granting the write path to the new account, check the result:</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-status" aria-label="Copy status commands" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-status"><code>sudo chown appd-sundial:appd-sundial /srv/sundial/public
+appd status all</code></pre>
+      </div>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">output</span>
+        </div>
+        <pre><code>APP      UNIT                  STATE    SINCE             PID    NOTES
+sundial  appd-sundial.service  running  2026-10-26 14:02  41231</code></pre>
+      </div>
+    </section>
+
+    <section aria-labelledby="logs">
+      <h2 id="logs">Logs</h2>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-logs" aria-label="Copy log commands" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-logs"><code>appd logs sundial -n 50
+appd logs sundial -f
+appd error-logs sundial</code></pre>
+      </div>
+      <p>The backend is journald. <code>error-logs</code> filters to priority <code>err</code>; journald records plain stdout and stderr at priority 6, so an app has to tag a line with <code>&lt;3&gt;</code> to appear there. <code>appd logs</code> always shows the merged stream.</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">node</span>
+        </div>
+        <pre><code><span class="tok-comment">// priority 3: visible in `appd error-logs`</span>
+process.stderr.write(<span class="tok-string">"&lt;3&gt;database connection lost\n"</span>);</code></pre>
+      </div>
+    </section>
+
+    <section aria-labelledby="change">
+      <h2 id="change">Change a config</h2>
+      <p>Add a flag to the API, then ask what that would do. <code>diff</code> exits 1 when the installed unit and the config disagree.</p>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-change" aria-label="Copy change commands" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-change"><code>sudo appd diff sundial
+sudo appd apply sundial
+sudo appd restart sundial</code></pre>
+      </div>
+      <p>If the change is something the process reads at runtime — a template, not an argument — use <code>sudo appd reload sundial</code>. It runs the configured <code>reload</code> command. Without one, appd refuses and tells you to restart instead of guessing at a signal.</p>
+    </section>
+
+    <section aria-labelledby="remove">
+      <h2 id="remove">Remove</h2>
+      <div class="code">
+        <div class="code__bar">
+          <span class="code__label">shell</span>
+          <button class="copy" type="button" data-copy="#tut-remove" aria-label="Copy remove command" aria-live="polite">Copy</button>
+        </div>
+        <pre id="tut-remove"><code>sudo appd remove sundial</code></pre>
+      </div>
+      <p>It prints exactly what will go: unit, config, provisioned account, state directory. <code>--keep-user</code> and <code>--keep-state</code> leave either behind. It never deletes the application binary, because appd did not install it.</p>
+    </section>
+
+    <section aria-labelledby="breaks">
+      <h2 id="breaks">When it breaks</h2>
+      <div class="table-wrap">
+        <table class="spec">
+          <thead>
+            <tr><th scope="col">Symptom</th><th scope="col">Cause</th><th scope="col">Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Symptom"><code>status=203/EXEC</code></td>
+              <td data-label="Cause">The account cannot execute the binary, or a parent directory blocks it.</td>
+              <td data-label="Fix"><code>appd doctor</code> names the path; <code>chmod o+rx</code> it, or set an existing <code>user</code>.</td>
+            </tr>
+            <tr>
+              <td data-label="Symptom"><code>status=226/NAMESPACE</code></td>
+              <td data-label="Cause">A path in <code>permissions.read</code> or <code>permissions.write</code> does not exist.</td>
+              <td data-label="Fix">Create the directory, or remove it from the config.</td>
+            </tr>
+            <tr>
+              <td data-label="Symptom"><code>EROFS</code> or permission denied on write</td>
+              <td data-label="Cause">The path is not opened in <code>permissions.write</code>, or the service account does not own it.</td>
+              <td data-label="Fix">Add the path, and <code>chown</code> it to the account.</td>
+            </tr>
+            <tr>
+              <td data-label="Symptom"><code>error-logs</code> is empty</td>
+              <td data-label="Cause">journald stores plain stderr at priority 6.</td>
+              <td data-label="Fix">Tag error lines with <code>&lt;3&gt;</code>, or use <code>appd logs</code>.</td>
+            </tr>
+            <tr>
+              <td data-label="Symptom">Behavior did not change after <code>apply</code></td>
+              <td data-label="Cause">The running process still holds the old unit.</td>
+              <td data-label="Fix"><code>appd restart sundial</code>, or <code>reload</code> if the change is reloadable.</td>
+            </tr>
+            <tr>
+              <td data-label="Symptom"><code>doctor</code> warns about two versions</td>
+              <td data-label="Cause">The cargo copy and <code>/usr/local/bin</code> copy disagree.</td>
+              <td data-label="Fix"><code>sudo "$(command -v appd)" install</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>For everything else, the reference has the full config field list, and the repository’s <a href="https://github.com/jameslaydigital/appd/blob/main/TUTORIAL.md">TUTORIAL.md</a> covers renaming, orphans, and hand-edited units.</p>
+    </section>
+  </main>
+
+  <footer class="foot shell">
+    <p>appd 0.2.5 · MIT · written in Rust, run by systemd. No telemetry.</p>
+    <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
+    <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
+  </footer>
+</body>
+</html>

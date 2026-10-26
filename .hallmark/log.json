@@ -1,0 +1,11 @@
+[
+  {
+    "date": "2026-10-26",
+    "macrostructure": "Long Document",
+    "theme": "custom",
+    "theme_axes": "light / mono / warm",
+    "vibe": "utilitarian xterm, man-page bones, quiet flash",
+    "enrichment": "generated xterm-256 palette canvas",
+    "brief": "appd · systemd CLI site for sysadmins"
+  }
+]
