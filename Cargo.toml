@@ -4,6 +4,10 @@ version = "0.2.0"
 edition = "2024"
 description = "A thin, hardened frontend for systemd"
 license = "MIT"
+readme = "README.md"
+rust-version = "1.85"
+keywords = ["systemd", "cli", "services", "hardening", "process-manager"]
+categories = ["command-line-utilities", "os"]
 
 [dependencies]
 anyhow = "1"
