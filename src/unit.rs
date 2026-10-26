@@ -53,6 +53,12 @@ pub fn render(app: &str, cfg: &Config) -> String {
     }
 
     let _ = writeln!(out, "Restart={}", cfg.restart.as_str());
+    if let Some(seconds) = cfg.restart_sec {
+        let _ = writeln!(out, "RestartSec={seconds}");
+    }
+    if let Some(umask) = &cfg.umask {
+        let _ = writeln!(out, "UMask={umask}");
+    }
 
     for (key, value) in &cfg.environment {
         let _ = writeln!(out, "Environment={key}={}", escape_value(value));
@@ -247,6 +253,20 @@ mod tests {
         );
         assert!(unit.contains("Environment=GREETING=\"hello world\"\n"));
         assert!(unit.contains("Environment=PCT=100%%\n"));
+    }
+
+    #[test]
+    fn restart_sec_and_umask_are_rendered() {
+        let unit = render_json(
+            "demo",
+            r#"{ "exec": "/bin/true", "restart": "always", "restart_sec": 3, "umask": "0027" }"#,
+        );
+        assert!(unit.contains("Restart=always
+"), "{unit}");
+        assert!(unit.contains("RestartSec=3
+"), "{unit}");
+        assert!(unit.contains("UMask=0027
+"), "{unit}");
     }
 
     #[test]

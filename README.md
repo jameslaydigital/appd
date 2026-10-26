@@ -306,6 +306,8 @@ the service gets a private state directory automatically — see *Users and stat
 | `user` | no | `appctl-<app>` | Existing user to run as. `"root"` allowed, but must be written explicitly |
 | `group` | no | `user` | `Group=` |
 | `restart` | no | `on-failure` | `Restart=` |
+| `restart_sec` | no | systemd default (100ms) | `RestartSec=` in seconds |
+| `umask` | no | systemd default (`0022`) | `UMask=`, 1–4 octal digits |
 | `reload` | no | — | Command used by `appctl reload`, as an argv array. Without it, `reload` refuses and points at `restart` |
 | `wanted_by` | no | `["multi-user.target"]` | What `enable` links into |
 | `environment` | no | `{}` | Environment variables |

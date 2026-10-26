@@ -31,6 +31,12 @@ pub struct Config {
     pub group: Option<String>,
     #[serde(default)]
     pub restart: Restart,
+    /// Seconds between restarts (`RestartSec=`). systemd's default is 100ms.
+    #[serde(default)]
+    pub restart_sec: Option<u32>,
+    /// Octal umask for the service's processes, e.g. `"0027"`.
+    #[serde(default)]
+    pub umask: Option<String>,
     /// Command used by `appctl reload` / `systemctl reload`.
     #[serde(default)]
     pub reload: Option<Vec<String>>,
@@ -154,6 +160,15 @@ impl Config {
                 bail!("`reload` must be a non-empty array of arguments");
             }
             require_absolute("reload", &argv[0])?;
+        }
+
+        if let Some(umask) = &self.umask {
+            if umask.is_empty()
+                || umask.len() > 4
+                || !umask.chars().all(|c| matches!(c, '0'..='7'))
+            {
+                bail!("`umask` must be 1-4 octal digits, got `{umask}`");
+            }
         }
 
         if let Some(user) = &self.user {
@@ -297,6 +312,22 @@ mod tests {
         let cfg = Config::parse("demo", r#"{ "exec": "/bin/true", "user": "root" }"#).unwrap();
         assert!(!cfg.provisions_user());
         assert_eq!(cfg.service_user("demo"), "root");
+    }
+
+    #[test]
+    fn validates_restart_sec_and_umask() {
+        let cfg = Config::parse(
+            "demo",
+            r#"{ "exec": "/bin/true", "restart_sec": 3, "umask": "0027" }"#,
+        )
+        .unwrap();
+        assert_eq!(cfg.restart_sec, Some(3));
+        assert_eq!(cfg.umask.as_deref(), Some("0027"));
+
+        for bad in ["0899", "999", "", "00271"] {
+            let json = format!(r#"{{ "exec": "/bin/true", "umask": "{bad}" }}"#);
+            assert!(Config::parse("demo", &json).is_err(), "`{bad}` should be rejected");
+        }
     }
 
     #[test]
