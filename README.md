@@ -91,6 +91,9 @@ Repeat with `completions zsh` and `completions fish` for the other shells, writi
 `…/zsh/site-functions/_appctl` and `…/fish/vendor_completions.d/appctl.fish` respectively. If the
 tarball already ships completion files, install those instead.
 
+`apply` creates `/etc/appctl` (mode `0755`) if it is missing, so none of these installation routes
+need to. An existing directory is left alone, including its permissions.
+
 ### Verify
 
 ```bash
@@ -271,7 +274,9 @@ appctl writes `appctl-<app>.service`, so it never overwrites the hand-written un
 Both units can exist at once, which also means both can try to bind the same port. The safe order:
 
 1. Write `/etc/appctl/<app>.json` and run `sudo appctl doctor` — it reports missing paths, env files
-   and executables before anything is installed.
+   and executables before anything is installed. If `/etc/appctl` doesn't exist yet, a bare
+   `sudo appctl apply` creates it (and installs nothing), or use
+   `sudo install -d -m 0755 /etc/appctl`.
 2. `sudo appctl apply <app>` — writes the new unit and reloads systemd; starts nothing.
 3. `sudo systemctl disable --now <app>.service` — stop the incumbent.
 4. `sudo appctl enable <app> && sudo appctl start <app>`.

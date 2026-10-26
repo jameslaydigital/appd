@@ -27,6 +27,15 @@ pub fn run() -> Result<i32> {
         problems += 1;
     }
 
+    if !registry.dir.exists() {
+        println!("config directory");
+        println!(
+            "  ⚠ {} does not exist; `appctl apply` creates it",
+            registry.dir.display()
+        );
+        warnings += 1;
+    }
+
     for app in &registry.apps {
         let findings = inspect(app, managing);
         if findings.is_empty() {

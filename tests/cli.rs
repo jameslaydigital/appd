@@ -12,15 +12,20 @@ struct Fixture {
 
 impl Fixture {
     fn new(configs: &[(&str, &str)]) -> Self {
-        let root = tempfile::tempdir().unwrap();
-        fs::create_dir_all(root.path().join("config")).unwrap();
-        fs::create_dir_all(root.path().join("units")).unwrap();
+        let fixture = Self::bare();
+        fs::create_dir_all(fixture.config_dir()).unwrap();
 
-        let fixture = Self { root };
         for (name, json) in configs {
             fixture.write_config(name, json);
         }
         fixture
+    }
+
+    /// A fixture whose config directory does not exist yet.
+    fn bare() -> Self {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir_all(root.path().join("units")).unwrap();
+        Self { root }
     }
 
     fn config_dir(&self) -> PathBuf {
@@ -88,6 +93,35 @@ fn apply_is_idempotent_and_writes_hardened_units() {
         "{}",
         stdout(&second)
     );
+}
+
+#[test]
+fn apply_creates_the_config_directory() {
+    let fixture = Fixture::bare();
+    assert!(!fixture.config_dir().exists());
+
+    let output = fixture.run(&["apply", "all", "--yes"]);
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(stdout(&output).contains("Created"), "{}", stdout(&output));
+    assert!(fixture.config_dir().is_dir());
+    assert_eq!(
+        fs::metadata(fixture.config_dir())
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o755,
+        "the directory must be listable so non-root status works"
+    );
+}
+
+#[test]
+fn doctor_reports_a_missing_config_directory() {
+    let fixture = Fixture::bare();
+    let output = fixture.run(&["doctor"]);
+    let text = stdout(&output);
+    assert!(text.contains("config directory"), "{text}");
+    assert!(text.contains("does not exist"), "{text}");
 }
 
 #[test]

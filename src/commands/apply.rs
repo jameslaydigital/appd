@@ -38,6 +38,14 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
         );
     }
 
+    // appctl owns this directory; create it so a fresh install has somewhere to put configs.
+    if paths::ensure_config_dir()? {
+        println!(
+            "Created {} (one <app>.json per app).",
+            paths::config_dir().display()
+        );
+    }
+
     let registry = registry::load()?;
     // All-or-nothing: never write half a configuration.
     registry.require_sound()?;
