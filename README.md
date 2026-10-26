@@ -38,6 +38,17 @@ above as subprocesses.
 
 ## Install
 
+### From crates.io
+
+```bash
+cargo install --locked appd
+```
+
+This is the Rust-native route: it downloads the published crate, builds it, and installs `appd` to
+`~/.cargo/bin`. `--locked` uses the dependency versions recorded in the published `Cargo.lock`, so
+the build matches what was released. No daemon, no service to enable — the binary is the whole
+program.
+
 ### From a source checkout
 
 ```bash
@@ -59,10 +70,10 @@ shell completions:
 `PREFIX` and `DESTDIR` are honoured, so `make install DESTDIR=/tmp/stage PREFIX=/usr` produces a
 tree you can hand to a packager.
 
-For an unprivileged, user-local install:
+For an unprivileged, user-local install from the checkout:
 
 ```bash
-cargo install --path .                 # ~/.cargo/bin
+cargo install --path .                 # build this checkout into ~/.cargo/bin
 # or
 make install PREFIX="$HOME/.local"     # ~/.local/bin, ~/.local/share/…
 ```
@@ -155,8 +166,10 @@ works when the server's glibc is at least as new as the build machine's.
 
 #### Packages and releases
 
-appd links libc but no systemd libraries — it drives `systemctl`, `journalctl` and `useradd` as
-subprocesses — so packaging is mostly about producing the artifact:
+The crate is published on crates.io as `appd`, so the Rust-native route needs no artifact:
+`cargo install --locked appd`. For everyone else, packaging is mostly about producing the binary,
+since appd links libc but no systemd libraries — it drives `systemctl`, `journalctl` and `useradd`
+as subprocesses:
 
 ```bash
 cargo install cargo-deb && cargo deb           # .deb for Debian/Ubuntu
