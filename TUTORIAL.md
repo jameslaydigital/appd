@@ -342,6 +342,7 @@ selection while it's open switches streams.
 | `j` / `k`, arrows | move between apps |
 | `g` / `G` | first / last |
 | `enter` / `l` | toggle the log pane |
+| `a` | apply configs (sync units; does not restart) |
 | `r` | restart, asks first |
 | `s` | stop, asks first |
 | `t` | start |

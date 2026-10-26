@@ -285,6 +285,45 @@ impl Model {
         }
         self.refresh();
     }
+
+    /// Render every config into its unit and reload systemd, without restarting anything.
+    fn apply_configs(&mut self) {
+        if self.readonly {
+            // Apply is global, so don't name the selected app like the other keys do.
+            self.say("read-only: run `sudo appd apply` from a shell", false);
+            return;
+        }
+
+        match crate::commands::apply::sync(&[], false) {
+            Ok(report) => {
+                let mut message = if !report.dir_exists {
+                    "no config directory; run `appd init`".to_string()
+                } else if report.applied == 0 {
+                    "no configs to apply".to_string()
+                } else if report.changed.is_empty() {
+                    format!("applied {} configs; already in sync", report.applied)
+                } else {
+                    format!(
+                        "applied {} configs, {} changed; restart {}",
+                        report.applied,
+                        report.changed.len(),
+                        report.changed.join(" ")
+                    )
+                };
+                if !report.warnings.is_empty() {
+                    message.push_str(&format!(
+                        " ({} warnings; see `appd apply`)",
+                        report.warnings.len()
+                    ));
+                }
+                self.say(message, report.dir_exists);
+            }
+            Err(err) => self.say(format!("{err:#}"), false),
+        }
+
+        self.refresh();
+        self.sync_journal();
+    }
 }
 
 fn load_rows() -> Result<Vec<AppRow>> {
@@ -462,6 +501,7 @@ fn handle_key(model: &mut Model, key: KeyEvent) -> bool {
             model.selected = len.saturating_sub(1);
         }
         KeyCode::Enter | KeyCode::Char('l') => model.toggle_logs(),
+        KeyCode::Char('a') => model.apply_configs(),
         KeyCode::Char('r') => model.request(Action::Restart),
         KeyCode::Char('s') => model.request(Action::Stop),
         KeyCode::Char('t') => model.perform("start"),
@@ -629,9 +669,9 @@ fn render_footer(frame: &mut Frame, model: &Model, area: Rect) {
         Mode::Help => " any key to close".to_string(),
         Mode::Normal => {
             if area.width < 100 {
-                " j/k move · enter logs · r restart · s stop · ? help · q quit".to_string()
+                " j/k move · enter logs · a apply · r restart · s stop · ? help · q quit".to_string()
             } else {
-                " j/k move · enter logs · r restart · s stop · t start · e enable · x disable · / filter · ? help · q quit"
+                " j/k move · enter logs · a apply · r restart · s stop · t start · e enable · x disable · / filter · ? help · q quit"
                     .to_string()
             }
         }
@@ -650,6 +690,7 @@ fn render_help(frame: &mut Frame) {
         Line::from("  j / k, ↑ / ↓   move between apps"),
         Line::from("  g / G          first / last"),
         Line::from("  enter or l     toggle the log pane for the selection"),
+        Line::from("  a              apply configs: sync units (no restart)"),
         Line::from("  r              restart (asks first)"),
         Line::from("  s              stop (asks first)"),
         Line::from("  t              start"),
@@ -764,6 +805,18 @@ mod tests {
         let mut model = model_with(&["demo"]);
         model.request(Action::Restart);
         assert!(matches!(model.mode, Mode::Confirm(Action::Restart)));
+    }
+
+    #[test]
+    fn read_only_blocks_apply() {
+        let mut model = model_with(&["demo"]);
+        model.readonly = true;
+
+        model.apply_configs();
+
+        let (message, ok, _) = model.toast().unwrap();
+        assert!(!ok);
+        assert!(message.contains("sudo appd apply"), "{message}");
     }
 
     #[test]

@@ -1,4 +1,8 @@
 //! `appd apply`: render configs into units, install them, report what changed.
+//!
+//! The work is split from the reporting so the TUI can trigger a sync without touching stdout:
+//! [`sync`] writes units and returns a report, [`run`] adds the root check, confirmation and
+//! human-readable output.
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -11,7 +15,7 @@ use crate::table::Table;
 use crate::{naming, paths, registry, systemd, unit};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Outcome {
+pub(crate) enum Outcome {
     Created,
     Updated,
     Unchanged,
@@ -29,45 +33,33 @@ impl Outcome {
     }
 }
 
-pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
-    let managing = paths::manages_system_units();
-    if managing && !systemd::is_root() {
-        bail!(
-            "`apply` writes to {} and manages system accounts; it needs root.\n\n  {}",
-            paths::unit_dir().display(),
-            crate::commands::root_hint("apply")
-        );
-    }
+pub(crate) struct Report {
+    pub(crate) applied: usize,
+    pub(crate) changed: Vec<String>,
+    pub(crate) provisioned: Vec<String>,
+    pub(crate) warnings: Vec<String>,
+    pub(crate) orphans: Vec<(String, PathBuf)>,
+    pub(crate) pruned: Vec<String>,
+    pub(crate) rows: Vec<(String, Outcome)>,
+    pub(crate) dir_exists: bool,
+}
 
-    // `apply` never creates the config directory: `init` owns that decision.
+/// Write and reload units, returning what happened. No output, no confirmation, no root check:
+/// callers decide those. Used by both `appd apply` and the TUI.
+pub(crate) fn sync(apps: &[String], prune: bool) -> Result<Report> {
+    let managing = paths::manages_system_units();
     let registry = registry::load()?;
     // All-or-nothing: never write half a configuration.
     registry.require_sound()?;
 
     let selected = registry.select(apps)?;
-    let all_requested = apps.is_empty() || apps.iter().any(|app| app == "all");
-    if all_requested && selected.len() > 1 && !confirm("Apply all configs", yes)? {
-        println!("aborted, nothing applied");
-        return Ok(0);
-    }
-
     let orphans = registry.orphaned_units()?;
-    if selected.is_empty() && orphans.is_empty() {
-        if registry.dir.exists() {
-            println!("no configs in {}", registry.dir.display());
-        } else {
-            println!(
-                "no config directory at {}; run `appd init` first",
-                registry.dir.display()
-            );
-        }
-        return Ok(0);
-    }
+    let dir_exists = registry.dir.exists();
 
     let mut rows: Vec<(String, Outcome)> = Vec::new();
     let mut changed = Vec::new();
     let mut provisioned = Vec::new();
-    let mut warnings: Vec<String> = Vec::new();
+    let mut warnings = Vec::new();
 
     for app in &selected {
         let user = app.config.service_user(&app.name);
@@ -106,8 +98,61 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
             .context("units were written but `systemctl daemon-reload` failed")?;
     }
 
+    let pruned = if prune {
+        prune_units(&orphans, managing)?
+    } else {
+        Vec::new()
+    };
+
+    Ok(Report {
+        applied: selected.len(),
+        changed,
+        provisioned,
+        warnings,
+        orphans,
+        pruned,
+        rows,
+        dir_exists,
+    })
+}
+
+pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
+    let managing = paths::manages_system_units();
+    if managing && !systemd::is_root() {
+        bail!(
+            "`apply` writes to {} and manages system accounts; it needs root.\n\n  {}",
+            paths::unit_dir().display(),
+            crate::commands::root_hint("apply")
+        );
+    }
+
+    // Load once for the confirmation decision; `sync` loads again to do the work.
+    let registry = registry::load()?;
+    registry.require_sound()?;
+
+    let selected = registry.select(apps)?;
+    let all_requested = apps.is_empty() || apps.iter().any(|app| app == "all");
+    if all_requested && selected.len() > 1 && !confirm("Apply all configs", yes)? {
+        println!("aborted, nothing applied");
+        return Ok(0);
+    }
+
+    let report = sync(apps, prune)?;
+
+    if report.applied == 0 && report.orphans.is_empty() {
+        if report.dir_exists {
+            println!("no configs in {}", paths::config_dir().display());
+        } else {
+            println!(
+                "no config directory at {}; run `appd init` first",
+                paths::config_dir().display()
+            );
+        }
+        return Ok(0);
+    }
+
     let mut table = Table::new(&["APP", "UNIT", "RESULT"]);
-    for (app, outcome) in &rows {
+    for (app, outcome) in &report.rows {
         table.push(vec![
             app.clone(),
             naming::unit_name(app),
@@ -117,26 +162,29 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
 
     println!(
         "Applied {}, {} changed.",
-        commands::plural(selected.len(), "config", "configs"),
-        changed.len()
+        commands::plural(report.applied, "config", "configs"),
+        report.changed.len()
     );
     println!();
     print!("{}", table.render());
 
-    if !provisioned.is_empty() {
+    if !report.provisioned.is_empty() {
         println!();
-        println!("Created system accounts: {}", provisioned.join(", "));
+        println!(
+            "Created system accounts: {}",
+            report.provisioned.join(", ")
+        );
     }
 
-    if !warnings.is_empty() {
+    if !report.warnings.is_empty() {
         println!();
-        for warning in &warnings {
+        for warning in &report.warnings {
             println!("warning: {warning}");
         }
     }
 
     println!();
-    if changed.is_empty() {
+    if report.changed.is_empty() {
         println!("All installed units already match their configs.");
     } else {
         println!(
@@ -147,28 +195,27 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
             "Running services are still using the previous units. Restart or reload them to pick up the changes:"
         );
         println!();
-        println!("  appd restart {}", changed.join(" "));
+        println!("  appd restart {}", report.changed.join(" "));
     }
 
     if prune {
-        let removed = prune_units(&orphans, managing)?;
-        if removed.is_empty() {
+        if report.pruned.is_empty() {
             println!();
             println!("Nothing to prune.");
         } else {
             println!();
-            for app in &removed {
+            for app in &report.pruned {
                 println!("Pruned {}.", naming::unit_name(app));
             }
         }
-    } else if !orphans.is_empty() {
+    } else if !report.orphans.is_empty() {
         println!();
-        let message = if orphans.len() == 1 {
+        let message = if report.orphans.len() == 1 {
             "1 orphaned unit has no config; run `appd apply --prune` to remove it.".to_string()
         } else {
             format!(
                 "{} orphaned units have no config; run `appd apply --prune` to remove them.",
-                orphans.len()
+                report.orphans.len()
             )
         };
         println!("{message}");

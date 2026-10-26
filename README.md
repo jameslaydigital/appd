@@ -155,7 +155,7 @@ directories. Per-app teardown is `sudo appd remove <app>`.
 
 ```bash
 make dist
-# target/dist/appd-0.2.1-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
+# target/dist/appd-0.2.2-x86_64-unknown-linux-musl.tar.gz  (+ .sha256)
 ```
 
 `make dist` builds a **static musl binary** for `TARGET` (default
@@ -258,6 +258,7 @@ taking over the terminal.
 | --- | --- |
 | `j` / `k`, arrows | move between apps |
 | `enter` / `l` | toggle the log pane for the selection (follows the journal) |
+| `a` | apply configs: render units, install, `daemon-reload` — does not restart |
 | `r` | restart (asks first) |
 | `s` | stop (asks first) |
 | `t` | start |
