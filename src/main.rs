@@ -12,7 +12,7 @@ mod unit;
 use clap::Parser;
 
 fn main() {
-    // Rust ignores SIGPIPE by default, which turns `appctl status | head` into a panic on
+    // Rust ignores SIGPIPE by default, which turns `appd status | head` into a panic on
     // EPIPE. Restore the usual Unix behaviour: die quietly when the reader goes away.
     // SAFETY: setting a signal disposition to the default has no preconditions.
     unsafe { libc::signal(libc::SIGPIPE, libc::SIG_DFL) };
@@ -21,7 +21,7 @@ fn main() {
     match commands::run(cli) {
         Ok(code) => std::process::exit(code),
         Err(err) => {
-            eprintln!("appctl: {err:#}");
+            eprintln!("appd: {err:#}");
             std::process::exit(1);
         }
     }

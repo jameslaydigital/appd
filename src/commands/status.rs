@@ -1,4 +1,4 @@
-//! `appctl status`: one line per app, or a detail view for one app.
+//! `appd status`: one line per app, or a detail view for one app.
 
 use anyhow::Result;
 
@@ -53,7 +53,7 @@ pub fn run(apps: &[String]) -> Result<i32> {    let registry = registry::load()?
             "?".to_string(),
             "-".to_string(),
             "-".to_string(),
-            "invalid config, see appctl doctor".to_string(),
+            "invalid config, see appd doctor".to_string(),
         ]);
     }
 
@@ -89,7 +89,7 @@ pub(crate) fn probe(unit: &str) -> (String, String, String, String) {
 
     if load_state == "not-found" {
         let notes = if active_state == "inactive" {
-            "not installed, run appctl apply"
+            "not installed, run appd apply"
         } else {
             "not found"
         };

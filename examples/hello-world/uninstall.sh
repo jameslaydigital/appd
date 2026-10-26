@@ -1,34 +1,34 @@
 #!/bin/sh
 # Remove the hello-world demo app: unit, config, provisioned account and state directory.
 #
-# `appctl remove` owns everything it created; the binary under /srv is ours, so it goes too.
+# `appd remove` owns everything it created; the binary under /srv is ours, so it goes too.
 # Run as root.
 
 set -eu
 
 APP=hello-world
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-APPCTL=${APPCTL:-appctl}
+APPD=${APPD:-appd}
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "uninstall.sh: run as root" >&2
     exit 1
 fi
 
-if ! command -v "$APPCTL" >/dev/null 2>&1; then
-    if [ -x "$HERE/../../target/release/appctl" ]; then
-        APPCTL="$HERE/../../target/release/appctl"
-    elif [ -x "$HERE/../../target/debug/appctl" ]; then
-        APPCTL="$HERE/../../target/debug/appctl"
+if ! command -v "$APPD" >/dev/null 2>&1; then
+    if [ -x "$HERE/../../target/release/appd" ]; then
+        APPD="$HERE/../../target/release/appd"
+    elif [ -x "$HERE/../../target/debug/appd" ]; then
+        APPD="$HERE/../../target/debug/appd"
     else
-        echo "uninstall.sh: cannot find appctl; build it or set APPCTL=/path/to/appctl" >&2
+        echo "uninstall.sh: cannot find appd; build it or set APPD=/path/to/appd" >&2
         exit 1
     fi
 fi
 
-"$APPCTL" remove "$APP" --yes
+"$APPD" remove "$APP" --yes
 
-# appctl does not install or own the application binary, so removing /srv is up to us.
+# appd does not install or own the application binary, so removing /srv is up to us.
 rm -rf "/srv/$APP"
 
 echo "$APP uninstalled."

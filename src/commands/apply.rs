@@ -1,4 +1,4 @@
-//! `appctl apply`: render configs into units, install them, report what changed.
+//! `appd apply`: render configs into units, install them, report what changed.
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -56,7 +56,7 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
             println!("no configs in {}", registry.dir.display());
         } else {
             println!(
-                "no config directory at {}; run `appctl init` first",
+                "no config directory at {}; run `appd init` first",
                 registry.dir.display()
             );
         }
@@ -72,7 +72,7 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
         let user = app.config.service_user(&app.name);
         if managing
             && app.config.provisions_user()
-            && systemd::ensure_user(&user, &format!("appctl app {}", app.name))?
+            && systemd::ensure_user(&user, &format!("appd app {}", app.name))?
         {
             provisioned.push(user);
         }
@@ -81,7 +81,7 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
         if let Some(argv) = &app.config.reload {
             if !Path::new(&argv[0]).exists() {
                 warnings.push(format!(
-                    "{}: reload command {} does not exist; `appctl reload` will fail",
+                    "{}: reload command {} does not exist; `appd reload` will fail",
                     app.name, argv[0]
                 ));
             }
@@ -146,7 +146,7 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
             "Running services are still using the previous units. Restart or reload them to pick up the changes:"
         );
         println!();
-        println!("  appctl restart {}", changed.join(" "));
+        println!("  appd restart {}", changed.join(" "));
     }
 
     if prune {
@@ -163,10 +163,10 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
     } else if !orphans.is_empty() {
         println!();
         let message = if orphans.len() == 1 {
-            "1 orphaned unit has no config; run `appctl apply --prune` to remove it.".to_string()
+            "1 orphaned unit has no config; run `appd apply --prune` to remove it.".to_string()
         } else {
             format!(
-                "{} orphaned units have no config; run `appctl apply --prune` to remove them.",
+                "{} orphaned units have no config; run `appd apply --prune` to remove them.",
                 orphans.len()
             )
         };
@@ -206,7 +206,7 @@ fn write_unit(path: &Path, rendered: &str) -> Result<Outcome> {
             .with_context(|| format!("cannot read {}", path.display()))?;
         if !existing.contains(unit::MARKER) {
             bail!(
-                "refusing to overwrite {}: it exists but does not carry `{}`, so appctl did not create it",
+                "refusing to overwrite {}: it exists but does not carry `{}`, so appd did not create it",
                 path.display(),
                 unit::MARKER
             );
@@ -244,8 +244,8 @@ mod tests {
     #[test]
     fn creates_then_reports_unchanged() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("appctl-demo.service");
-        let contents = "[Service]\nX-Appctl-Managed=1\n";
+        let path = dir.path().join("appd-demo.service");
+        let contents = "[Service]\nX-Appd-Managed=1\n";
 
         assert_eq!(write_unit(&path, contents).unwrap(), Outcome::Created);
         assert_eq!(write_unit(&path, contents).unwrap(), Outcome::Unchanged);
@@ -254,11 +254,11 @@ mod tests {
     #[test]
     fn updates_managed_unit() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("appctl-demo.service");
+        let path = dir.path().join("appd-demo.service");
 
-        write_unit(&path, "[Service]\nX-Appctl-Managed=1\nA=1\n").unwrap();
+        write_unit(&path, "[Service]\nX-Appd-Managed=1\nA=1\n").unwrap();
         assert_eq!(
-            write_unit(&path, "[Service]\nX-Appctl-Managed=1\nA=2\n").unwrap(),
+            write_unit(&path, "[Service]\nX-Appd-Managed=1\nA=2\n").unwrap(),
             Outcome::Updated
         );
         assert!(fs::read_to_string(&path).unwrap().contains("A=2"));
@@ -267,10 +267,10 @@ mod tests {
     #[test]
     fn refuses_to_clobber_foreign_unit() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("appctl-demo.service");
+        let path = dir.path().join("appd-demo.service");
         fs::write(&path, "[Service]\nExecStart=/usr/bin/other\n").unwrap();
 
-        let err = write_unit(&path, "[Service]\nX-Appctl-Managed=1\n").unwrap_err();
+        let err = write_unit(&path, "[Service]\nX-Appd-Managed=1\n").unwrap_err();
         assert!(err.to_string().contains("refusing to overwrite"), "{err}");
         assert!(
             fs::read_to_string(&path)

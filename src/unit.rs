@@ -5,8 +5,8 @@ use std::fmt::Write as _;
 use crate::config::Config;
 use crate::naming;
 
-/// Present in every unit appctl writes. `apply` refuses to overwrite a unit without it.
-pub const MARKER: &str = "X-Appctl-Managed=1";
+/// Present in every unit appd writes. `apply` refuses to overwrite a unit without it.
+pub const MARKER: &str = "X-Appd-Managed=1";
 
 pub fn render(app: &str, cfg: &Config) -> String {
     let user = cfg.service_user(app);
@@ -185,9 +185,9 @@ mod tests {
     fn minimal_unit_is_locked_down() {
         let unit = render_json("demo", r#"{ "exec": "/srv/demo/bin/demo" }"#);
 
-        assert!(unit.contains("User=appctl-demo\n"));
-        assert!(unit.contains("StateDirectory=appctl-demo\n"));
-        assert!(unit.contains("WorkingDirectory=/var/lib/appctl-demo\n"));
+        assert!(unit.contains("User=appd-demo\n"));
+        assert!(unit.contains("StateDirectory=appd-demo\n"));
+        assert!(unit.contains("WorkingDirectory=/var/lib/appd-demo\n"));
         assert!(unit.contains("ExecStart=/srv/demo/bin/demo\n"));
         assert!(unit.contains("Restart=on-failure\n"));
         assert!(unit.contains("ProtectSystem=strict\n"));
@@ -273,10 +273,10 @@ mod tests {
     fn environment_files_are_rendered_one_per_line() {
         let unit = render_json(
             "demo",
-            r#"{ "exec": "/bin/true", "environment_file": ["/etc/appctl/a.env", "/etc/appctl/b.env"] }"#,
+            r#"{ "exec": "/bin/true", "environment_file": ["/etc/appd/a.env", "/etc/appd/b.env"] }"#,
         );
-        assert!(unit.contains("EnvironmentFile=/etc/appctl/a.env\n"));
-        assert!(unit.contains("EnvironmentFile=/etc/appctl/b.env\n"));
+        assert!(unit.contains("EnvironmentFile=/etc/appd/a.env\n"));
+        assert!(unit.contains("EnvironmentFile=/etc/appd/b.env\n"));
     }
 
     #[test]

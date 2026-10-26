@@ -1,4 +1,4 @@
-# A tour of appctl
+# A tour of appd
 
 This walks through deploying a small real-world service, operating it day to day, adding a second
 one, and then the failures you'll actually hit. The app is hypothetical; its requirements are not.
@@ -13,26 +13,26 @@ because that distinction is part of the design.
 
 ```bash
 cargo build --release
-sudo install -Dm755 target/release/appctl /usr/local/bin/appctl
+sudo install -Dm755 target/release/appd /usr/local/bin/appd
 
-appctl --version
+appd --version
 systemctl is-system-running        # expect "running", or "degraded" with a reason
 ```
 
-`degraded` is fine — it means some *other* unit failed. appctl only ever touches its own.
+`degraded` is fine — it means some *other* unit failed. appd only ever touches its own.
 
 ### Where things live
 
 | What | Path |
 | --- | --- |
-| Configs | `/etc/appctl/<app>.json`, one per app |
-| Environment files | wherever you point `environment_file` (conventionally `/etc/appctl/<app>.env`) |
-| Generated units | `/etc/systemd/system/appctl-<app>.service` |
-| Service accounts | `appctl-<app>`, provisioned by `apply` |
-| App state | `/var/lib/appctl-<app>`, created by systemd |
-| Logs | journald, read through `appctl logs` |
+| Configs | `/etc/appd/<app>.json`, one per app |
+| Environment files | wherever you point `environment_file` (conventionally `/etc/appd/<app>.env`) |
+| Generated units | `/etc/systemd/system/appd-<app>.service` |
+| Service accounts | `appd-<app>`, provisioned by `apply` |
+| App state | `/var/lib/appd-<app>`, created by systemd |
+| Logs | journald, read through `appd logs` |
 
-The app name is the config file's stem. `sundial-api.json` becomes `appctl-sundial-api.service`,
+The app name is the config file's stem. `sundial-api.json` becomes `appd-sundial-api.service`,
 so nothing you install this way can collide with a package's unit.
 
 ---
@@ -77,8 +77,8 @@ its ownership fixed after `apply` creates the account.
 ## 2. The first config
 
 ```bash
-sudo appctl init
-sudo tee /etc/appctl/sundial-api.json >/dev/null <<'EOF'
+sudo appd init
+sudo tee /etc/appd/sundial-api.json >/dev/null <<'EOF'
 {
   "description": "Sundial notes API",
   "exec": "/srv/sundial/bin/sundial-api",
@@ -86,19 +86,19 @@ sudo tee /etc/appctl/sundial-api.json >/dev/null <<'EOF'
   "working_directory": "/srv/sundial",
   "restart": "on-failure",
   "reload": ["/bin/kill", "-HUP", "$MAINPID"],
-  "environment_file": "/etc/appctl/sundial.env",
+  "environment_file": "/etc/appd/sundial.env",
   "permissions": {
     "network": true,
     "write": ["/srv/sundial/public"]
   }
 }
 EOF
-sudo chmod 600 /etc/appctl/sundial-api.json
+sudo chmod 600 /etc/appd/sundial-api.json
 ```
 
 Notice what is *not* there: no `user`, and no `read` paths.
 
-- **No `user`** — `apply` provisions `appctl-sundial-api`, a system account with no shell and no
+- **No `user`** — `apply` provisions `appd-sundial-api`, a system account with no shell and no
   home, and runs the service as it. Writing `"user": "root"` is possible, but it has to be written
   down; it is never the default.
 - **No `read` paths** — everything is readable under the hardening defaults. `permissions.read`
@@ -108,16 +108,16 @@ Notice what is *not* there: no `user`, and no `read` paths.
 ### Check before applying
 
 ```bash
-sudo appctl doctor
+sudo appd doctor
 ```
 
 ```
 sundial-api
-  ✗ environment file /etc/appctl/sundial.env does not exist; the unit will fail to start
-  ✗ service account `appctl-sundial-api` does not exist
-      fix: appctl apply sundial-api
-  ⚠ appctl-sundial-api.service is not installed
-      fix: appctl apply sundial-api
+  ✗ environment file /etc/appd/sundial.env does not exist; the unit will fail to start
+  ✗ service account `appd-sundial-api` does not exist
+      fix: appd apply sundial-api
+  ⚠ appd-sundial-api.service is not installed
+      fix: appd apply sundial-api
 
 1 app checked, 2 problems, 1 warning, 0 orphans
 ```
@@ -129,11 +129,11 @@ so this works as a CI gate.
 Create the environment file:
 
 ```bash
-sudo tee /etc/appctl/sundial.env >/dev/null <<'EOF'
+sudo tee /etc/appd/sundial.env >/dev/null <<'EOF'
 DATABASE_URL=postgres://sundial@127.0.0.1/sundial
 SESSION_SECRET=replace-with-something-long
 EOF
-sudo chmod 600 /etc/appctl/sundial.env
+sudo chmod 600 /etc/appd/sundial.env
 ```
 
 This file is read by systemd (as root) and passed to the service. The unit refers to the path, not
@@ -145,21 +145,21 @@ the app's account.
 ## 3. Apply
 
 ```bash
-sudo appctl apply sundial-api
+sudo appd apply sundial-api
 ```
 
 ```
 Applied 1 config, 1 changed.
 
 APP          UNIT                         RESULT
-sundial-api  appctl-sundial-api.service   created
+sundial-api  appd-sundial-api.service   created
 
-Created system accounts: appctl-sundial-api
+Created system accounts: appd-sundial-api
 
 Unit files synchronized, systemd reloaded.
 Running services are still using the previous units. Restart or reload them to pick up the changes:
 
-  appctl restart sundial-api
+  appd restart sundial-api
 ```
 
 That last paragraph is the part worth internalizing: **`apply` synchronizes unit files, it does not
@@ -168,25 +168,25 @@ restart anything, and it does not enable or start anything.** Three separate dec
 Look at what it wrote:
 
 ```bash
-sudo systemctl cat appctl-sundial-api.service
+sudo systemctl cat appd-sundial-api.service
 ```
 
 ```ini
 [Unit]
 Description=Sundial notes API
-X-Appctl-Managed=1
+X-Appd-Managed=1
 After=network-online.target
 
 [Service]
 Type=simple
-User=appctl-sundial-api
-Group=appctl-sundial-api
+User=appd-sundial-api
+Group=appd-sundial-api
 WorkingDirectory=/srv/sundial
-StateDirectory=appctl-sundial-api
+StateDirectory=appd-sundial-api
 ExecStart=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
-EnvironmentFile=/etc/appctl/sundial.env
+EnvironmentFile=/etc/appd/sundial.env
 StandardOutput=journal
 StandardError=journal
 
@@ -219,17 +219,17 @@ WantedBy=multi-user.target
 ```
 
 `ProtectSystem=strict` makes the entire filesystem read-only, except `/srv/sundial/public` (which
-you opened) and `/var/lib/appctl-sundial-api` (which `StateDirectory=` creates and owns). The
+you opened) and `/var/lib/appd-sundial-api` (which `StateDirectory=` creates and owns). The
 service cannot write anywhere else, cannot see other processes, has no home directory, and cannot
 gain privileges.
 
-The `X-Appctl-Managed=1` marker is how `apply` and `remove` know the file is theirs. It matters in
+The `X-Appd-Managed=1` marker is how `apply` and `remove` know the file is theirs. It matters in
 step 11.
 
 Now give the app ownership of the directory it writes:
 
 ```bash
-sudo chown appctl-sundial-api:appctl-sundial-api /srv/sundial/public
+sudo chown appd-sundial-api:appd-sundial-api /srv/sundial/public
 ```
 
 `permissions.write` opened the path in the unit's mount namespace; it did not change ownership.
@@ -240,14 +240,14 @@ Both have to be true for a write to succeed.
 ## 4. Enable, start, status
 
 ```bash
-sudo appctl enable sundial-api
-sudo appctl start sundial-api
+sudo appd enable sundial-api
+sudo appd start sundial-api
 ```
 
 ```
-$ appctl status all
+$ appd status all
 APP          UNIT                         STATE    SINCE             PID    NOTES
-sundial-api  appctl-sundial-api.service   running  2026-10-26 14:02  41231
+sundial-api  appd-sundial-api.service   running  2026-10-26 14:02  41231
 ```
 
 `enable` means "start at boot", which is deliberately separate from `apply` and from `start`. A
@@ -256,18 +256,18 @@ config can be applied and running for weeks before you decide it should survive 
 The detail view adds the things you'd otherwise look up:
 
 ```bash
-appctl status sundial-api
+appd status sundial-api
 ```
 
 ```
 APP        sundial-api
-UNIT       appctl-sundial-api.service
-CONFIG     /etc/appctl/sundial-api.json
-USER       appctl-sundial-api
-STATE DIR  /var/lib/appctl-sundial-api
+UNIT       appd-sundial-api.service
+CONFIG     /etc/appd/sundial-api.json
+USER       appd-sundial-api
+STATE DIR  /var/lib/appd-sundial-api
 
-● appctl-sundial-api.service - Sundial notes API
-     Loaded: loaded (/etc/systemd/system/appctl-sundial-api.service; enabled; preset: enabled)
+● appd-sundial-api.service - Sundial notes API
+     Loaded: loaded (/etc/systemd/system/appd-sundial-api.service; enabled; preset: enabled)
      Active: active (running) since Mon 2026-10-26 14:02:11 UTC; 3min ago
    Main PID: 41231 (sundial-api)
 ```
@@ -280,7 +280,7 @@ read it), and `not-installed` (config exists, unit doesn't — run `apply`).
 ## 5. Logs
 
 ```bash
-appctl logs sundial-api -n 3
+appd logs sundial-api -n 3
 ```
 
 ```
@@ -291,26 +291,26 @@ appctl logs sundial-api -n 3
 
 | Command | What it does |
 | --- | --- |
-| `appctl logs sundial-api` | last 50 lines |
-| `appctl logs sundial-api -f` | follow |
-| `appctl logs sundial-api -n 500` | more history |
-| `appctl logs sundial-api --since 1h` | time window |
-| `appctl logs sundial-api -p warning` | filter by priority |
-| `appctl error-logs sundial-api` | `logs -p err` |
+| `appd logs sundial-api` | last 50 lines |
+| `appd logs sundial-api -f` | follow |
+| `appd logs sundial-api -n 500` | more history |
+| `appd logs sundial-api --since 1h` | time window |
+| `appd logs sundial-api -p warning` | filter by priority |
+| `appd error-logs sundial-api` | `logs -p err` |
 
-The journal is the only backend; appctl just hides `journalctl`'s flag vocabulary. Pipe to `grep`
+The journal is the only backend; appd just hides `journalctl`'s flag vocabulary. Pipe to `grep`
 like any other command.
 
 ### Why `error-logs` can be empty
 
 journald records both stdout and stderr at priority 6 (`info`) for services. Writing to stderr does
 not make a line an error as far as the journal is concerned. If `error-logs` comes back empty,
-appctl says so:
+appd says so:
 
 ```
-no journal entries for appctl-sundial-api.service at priority `err`
+no journal entries for appd-sundial-api.service at priority `err`
 journald records plain stdout and stderr at priority 6 (`info`), so an app has to
-tag a line with `<3>` to have it logged as `err`. Try `appctl logs sundial-api`.
+tag a line with `<3>` to have it logged as `err`. Try `appd logs sundial-api`.
 ```
 
 To get real error filtering, the app tags its own lines with a syslog priority. `<3>` is `err`,
@@ -328,12 +328,12 @@ eprintln!("<3>database connection lost");
 
 Anything that logs through `syslog(3)` or `sd_journal_print(LOG_ERR, …)` does this automatically,
 which is why compiled services and Python's `SysLogHandler` tend to "just work". This is a journald
-convention, not an appctl one — see the README for why v1 sticks with it rather than separate log
+convention, not an appd one — see the README for why v1 sticks with it rather than separate log
 files.
 
 ### The TUI
 
-`appctl` with no arguments opens the same information live. The table refreshes every couple of
+`appd` with no arguments opens the same information live. The table refreshes every couple of
 seconds; `enter` (or `l`) opens a pane that follows the selected app's journal, and moving the
 selection while it's open switches streams.
 
@@ -355,7 +355,7 @@ Read-only sessions are explicitly marked in the header. Pressing an action key a
 prints the command you'd need instead of firing a D-Bus call that would fail:
 
 ```
-read-only: run `sudo appctl restart sundial-api` from a shell
+read-only: run `sudo appd restart sundial-api` from a shell
 ```
 
 ---
@@ -371,41 +371,41 @@ Sundial needs more workers. Edit `args`:
 Ask what that would change:
 
 ```bash
-sudo appctl diff sundial-api
+sudo appd diff sundial-api
 ```
 
 ```
-appctl-sundial-api.service
---- installed: /etc/systemd/system/appctl-sundial-api.service
-+++ generated: /etc/appctl/sundial-api.json
+appd-sundial-api.service
+--- installed: /etc/systemd/system/appd-sundial-api.service
++++ generated: /etc/appd/sundial-api.json
 @@ -9,7 +9,7 @@
- Group=appctl-sundial-api
+ Group=appd-sundial-api
  WorkingDirectory=/srv/sundial
- StateDirectory=appctl-sundial-api
+ StateDirectory=appd-sundial-api
 -ExecStart=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787
 +ExecStart=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787 --workers 4
  ExecReload=/bin/kill -HUP $MAINPID
  Restart=on-failure
- EnvironmentFile=/etc/appctl/sundial.env
+ EnvironmentFile=/etc/appd/sundial.env
 ```
 
 `diff` exits 1 when anything drifted and 0 when everything is in sync, so it drops straight into a
 deploy check. Then:
 
 ```bash
-sudo appctl apply sundial-api       # writes the unit, reloads systemd
-sudo appctl restart sundial-api     # actually applies it to the running process
-appctl status sundial-api           # PID should have changed
+sudo appd apply sundial-api       # writes the unit, reloads systemd
+sudo appd restart sundial-api     # actually applies it to the running process
+appd status sundial-api           # PID should have changed
 ```
 
 If you only changed something the process reads at runtime — a template, not an argument — and the
 config defines `reload`, you can avoid a restart:
 
 ```bash
-sudo appctl reload sundial-api      # runs ExecReload, i.e. kill -HUP
+sudo appd reload sundial-api      # runs ExecReload, i.e. kill -HUP
 ```
 
-Without a `reload` entry in the config, `appctl reload` refuses and tells you to restart, rather
+Without a `reload` entry in the config, `appd reload` refuses and tells you to restart, rather
 than guessing at a signal that might kill the process.
 
 ---
@@ -413,26 +413,26 @@ than guessing at a signal that might kill the process.
 ## 7. A second app
 
 ```bash
-sudo tee /etc/appctl/sundial-worker.json >/dev/null <<'EOF'
+sudo tee /etc/appd/sundial-worker.json >/dev/null <<'EOF'
 {
   "description": "Sundial queue worker",
   "exec": "/usr/bin/node",
   "args": ["/srv/sundial/worker.js"],
   "working_directory": "/srv/sundial",
   "restart": "always",
-  "environment_file": "/etc/appctl/sundial.env",
+  "environment_file": "/etc/appd/sundial.env",
   "permissions": {
     "network": true
   }
 }
 EOF
-sudo chmod 600 /etc/appctl/sundial-worker.json
+sudo chmod 600 /etc/appd/sundial-worker.json
 ```
 
 Now operations can address both:
 
 ```bash
-sudo appctl apply all
+sudo appd apply all
 ```
 
 ```
@@ -440,17 +440,17 @@ Apply all configs? [y/N] y
 ```
 
 `apply` prompts whenever the target is every app and there's more than one. Pass `--yes` in
-scripts; in a non-interactive context without it, appctl refuses rather than assuming consent.
+scripts; in a non-interactive context without it, appd refuses rather than assuming consent.
 The same gate applies to `restart all`, `stop all`, and `disable all`.
 
 ```
-$ appctl status all
+$ appd status all
 APP             UNIT                            STATE    SINCE             PID    NOTES
-sundial-api     appctl-sundial-api.service      running  2026-10-26 14:02  41231
-sundial-worker  appctl-sundial-worker.service   running  2026-10-26 14:09  41977
+sundial-api     appd-sundial-api.service      running  2026-10-26 14:02  41231
+sundial-worker  appd-sundial-worker.service   running  2026-10-26 14:09  41977
 ```
 
-`all` means *all apps appctl manages*. It never touches a unit from a package, even if its name
+`all` means *all apps appd manages*. It never touches a unit from a package, even if its name
 looks similar.
 
 ---
@@ -467,12 +467,12 @@ Inline values live in the config. If a config holds secrets, `doctor` warns when
 group- or world-readable:
 
 ```
-  ⚠ /etc/appctl/sundial-api.json is readable by group/others and holds environment variables
-      fix: chmod 600 /etc/appctl/sundial-api.json
+  ⚠ /etc/appd/sundial-api.json is readable by group/others and holds environment variables
+      fix: chmod 600 /etc/appd/sundial-api.json
 ```
 
 ```json
-"environment_file": "/etc/appctl/sundial.env"
+"environment_file": "/etc/appd/sundial.env"
 ```
 
 The file is read by systemd as root, so it can stay `0600`. `systemctl cat` shows the path;
@@ -488,15 +488,15 @@ separate credential mechanism.
 ## 9. Removing an app
 
 ```bash
-sudo appctl remove sundial-worker
+sudo appd remove sundial-worker
 ```
 
 ```
 APP        sundial-worker
-UNIT       appctl-sundial-worker.service
-CONFIG     /etc/appctl/sundial-worker.json
-ACCOUNT    appctl-sundial-worker
-STATE      /var/lib/appctl-sundial-worker
+UNIT       appd-sundial-worker.service
+CONFIG     /etc/appd/sundial-worker.json
+ACCOUNT    appd-sundial-worker
+STATE      /var/lib/appd-sundial-worker
 
 Remove `sundial-worker` and the items above? [y/N]
 ```
@@ -508,10 +508,10 @@ Things it deliberately will not do:
 
 - `--keep-user` and `--keep-state` leave those behind, for when you're reinstalling or
   investigating.
-- It never deletes the application itself. `/srv/sundial` survives, because appctl did not install
+- It never deletes the application itself. `/srv/sundial` survives, because appd did not install
   it. That's why the demo's `uninstall.sh` removes `/srv` itself after calling `remove`.
 - It refuses to delete a unit file that lacks the marker, and aborts before touching anything else.
-- It only deletes an account when appctl provisioned it. A config with `"user": "www-data"` never
+- It only deletes an account when appd provisioned it. A config with `"user": "www-data"` never
   causes `www-data` to be deleted.
 
 ---
@@ -521,9 +521,9 @@ Things it deliberately will not do:
 ### A typo in the config
 
 ```
-$ sudo appctl apply sundial-api
-appctl: configuration is not usable, nothing applied:
-  /etc/appctl/sundial-api.json: invalid config for `sundial-api`: unknown field `netwrok`,
+$ sudo appd apply sundial-api
+appd: configuration is not usable, nothing applied:
+  /etc/appd/sundial-api.json: invalid config for `sundial-api`: unknown field `netwrok`,
   expected one of `description`, `exec`, `args`, `working_directory`, `user`, `group`, `restart`,
   `reload`, `wanted_by`, `environment`, `environment_file`, `permissions` at line 9 column 3
 ```
@@ -538,8 +538,8 @@ The file name is the app name, and it must work as both a unit name and an accou
 
 ```
 app name `Sundial-API` may only contain lowercase letters, digits and dashes
-app name `sundial-api-with-a-very-long-name` is 33 characters; the limit is 25 so that
-`appctl-sundial-api-with-a-very-long-name` fits in a 32-character Linux username
+app name `sundial-api-with-a-very-long-name` is 33 characters; the limit is 27 so that
+`appd-sundial-api-with-a-very-long-name` fits in a 32-character Linux username
 `all` is reserved and cannot be used as an app name
 ```
 
@@ -556,7 +556,7 @@ Failed at step EXEC spawning /srv/sundial/bin/sundial-api: Permission denied
 The account can't execute the binary. `doctor` catches this before you deploy:
 
 ```
-  ✗ /srv/sundial/bin/sundial-api is not executable by `appctl-sundial-api`
+  ✗ /srv/sundial/bin/sundial-api is not executable by `appd-sundial-api`
       fix: chmod o+rx /srv/sundial/bin/sundial-api (or point `user` at an account that can run it)
 ```
 
@@ -584,7 +584,7 @@ The mount namespace permits the write; filesystem ownership still decides it. Ch
 
 ```bash
 ls -ld /srv/sundial/public
-sudo -u appctl-sundial-api test -w /srv/sundial/public && echo writable
+sudo -u appd-sundial-api test -w /srv/sundial/public && echo writable
 ```
 
 `permissions.write` is a security boundary, not a chown.
@@ -598,38 +598,38 @@ reload, if the change is reloadable).
 ### `error-logs` is empty
 
 See step 5. Either the app doesn't tag priorities, or it has nothing at `err`. The empty-result
-message names the unit and priority, and `appctl logs` shows the merged stream.
+message names the unit and priority, and `appd logs` shows the merged stream.
 
-### `appctl reload` refuses
+### `appd reload` refuses
 
 ```
-sundial-api: no `reload` command configured; use `appctl restart sundial-api` instead
+sundial-api: no `reload` command configured; use `appd restart sundial-api` instead
 ```
 
 Add a `reload` argv array to the config. Note that many programs exit on SIGHUP if they don't
-handle it, which is exactly why appctl doesn't send one blindly.
+handle it, which is exactly why appd doesn't send one blindly.
 
 ### Renaming a config leaves a running unit behind
 
 You rename `sundial-api.json` to `sundial.json` and apply. Now:
 
 ```
-$ sudo appctl doctor
+$ sudo appd doctor
 sundial
   ✓ ok
 sundial-api
-  ! orphaned: /etc/systemd/system/appctl-sundial-api.service has no config
-      fix: appctl apply --prune
+  ! orphaned: /etc/systemd/system/appd-sundial-api.service has no config
+      fix: appd apply --prune
 
 2 apps checked, 0 problems, 0 warnings, 1 orphan
 ```
 
 The old unit is still installed and still running. `apply --prune` stops it, disables it, and
-deletes the unit file. It does not delete the old account or state directory — use `appctl remove`
+deletes the unit file. It does not delete the old account or state directory — use `appd remove`
 before renaming if you want everything gone:
 
 ```bash
-sudo appctl remove sundial-api --yes
+sudo appd remove sundial-api --yes
 # then rename and apply
 ```
 
@@ -638,38 +638,38 @@ sudo appctl remove sundial-api --yes
 `diff` shows the edit:
 
 ```bash
-sudo appctl diff sundial-api
+sudo appd diff sundial-api
 ```
 
 But `apply` will overwrite it, because the marker is still present. Treat generated units as build
-output: change the config, not the unit. If a file exists that appctl never wrote, `apply` refuses:
+output: change the config, not the unit. If a file exists that appd never wrote, `apply` refuses:
 
 ```
-appctl: refusing to overwrite /etc/systemd/system/appctl-sundial-api.service: it exists but
-does not carry `X-Appctl-Managed=1`, so appctl did not create it
+appd: refusing to overwrite /etc/systemd/system/appd-sundial-api.service: it exists but
+does not carry `X-Appd-Managed=1`, so appd did not create it
 ```
 
-That's the collision guard, and it's why every generated unit is prefixed `appctl-`.
+That's the collision guard, and it's why every generated unit is prefixed `appd-`.
 
 ### Working as a non-root user
 
-`status`, `status <app>`, and `logs` work as anyone. Configs are `0600`, so appctl can list app
+`status`, `status <app>`, and `logs` work as anyone. Configs are `0600`, so appd can list app
 names but not read their contents; state comes from systemd:
 
 ```
-$ appctl status all
+$ appd status all
 APP          UNIT                         STATE    SINCE             PID    NOTES
-sundial-api  appctl-sundial-api.service   running  2026-10-26 14:02  41231  config unreadable, run as root
+sundial-api  appd-sundial-api.service   running  2026-10-26 14:02  41231  config unreadable, run as root
 ```
 
 `apply`, `diff`, `doctor`, `remove`, and the service verbs need root on a real system. The service
 verbs say so instead of surfacing a D-Bus authentication error:
 
 ```
-appctl: `restart` drives systemd and requires root (it runs `systemctl restart …`)
+appd: `restart` drives systemd and requires root (it runs `systemctl restart …`)
 ```
 
-If the config *directory* itself isn't listable, appctl says that explicitly instead of pretending
+If the config *directory* itself isn't listable, appd says that explicitly instead of pretending
 there are no apps.
 
 ### A crash loop that looks healthy
@@ -678,11 +678,11 @@ there are no apps.
 keeps changing:
 
 ```bash
-systemctl show appctl-sundial-api -p NRestarts --value
-sudo journalctl -u appctl-sundial-api -n 50 --no-pager
+systemctl show appd-sundial-api -p NRestarts --value
+sudo journalctl -u appd-sundial-api -n 50 --no-pager
 ```
 
-During debugging, switch to `"restart": "on-failure"` and use `appctl logs -f` so the failure
+During debugging, switch to `"restart": "on-failure"` and use `appd logs -f` so the failure
 actually stops.
 
 ### A JIT runtime dies at startup
@@ -702,7 +702,7 @@ deliberate, visible trade, not a global switch.
 
 ### A unit that exists only as a file
 
-`appctl remove` needs a config, because it needs to know what it's allowed to delete. If a unit was
+`appd remove` needs a config, because it needs to know what it's allowed to delete. If a unit was
 left behind by a deleted config, it shows up as an orphan and is cleaned with
 `apply --prune`; `remove` won't invent permissions from nothing.
 
@@ -712,25 +712,26 @@ left behind by a deleted config, it shows up as an orphan and is cleaned with
 
 | Command | Does |
 | --- | --- |
-| `appctl init` | create `/etc/appctl` and print next steps; idempotent |
-| `appctl apply [APP…\|all] [--prune] [--yes]` | render units, install, `daemon-reload` |
-| `appctl diff [APP…\|all]` | show drift; exit 1 if any |
-| `appctl doctor` | preflight / diagnose; exit 1 on problems |
-| `appctl status [APP…\|all]` | table, or detail for one app |
-| `appctl logs APP [-f] [-n N] [--since T] [-p LEVEL]` | journal output |
-| `appctl error-logs APP` | `logs -p err` |
-| `appctl start\|stop\|restart\|reload APP…` | `systemctl` verbs |
-| `appctl enable\|disable APP…` | boot behaviour |
-| `appctl remove APP [--keep-user] [--keep-state] [--yes]` | full uninstall |
-| `appctl` | interactive TUI: live table, journal pane, restart/stop/enable |
+| `appd init` | create `/etc/appd` and print next steps; idempotent |
+| `appd apply [APP…\|all] [--prune] [--yes]` | render units, install, `daemon-reload` |
+| `appd diff [APP…\|all]` | show drift; exit 1 if any |
+| `appd doctor` | preflight / diagnose; exit 1 on problems |
+| `appd status [APP…\|all]` | table, or detail for one app |
+| `appd logs APP [-f] [-n N] [--since T] [-p LEVEL]` | journal output |
+| `appd error-logs APP` | `logs -p err` |
+| `appd start\|stop\|restart\|reload APP…` | `systemctl` verbs |
+| `appd enable\|disable APP…` | boot behaviour |
+| `appd remove APP [--keep-user] [--keep-state] [--yes]` | full uninstall |
+| `appd` | interactive TUI: live table, journal pane, restart/stop/enable |
 
 Exit codes: `0` success, `1` failure or drift/problems, so `diff` and `doctor` are usable in CI.
 
 ---
 
-## 12. What appctl deliberately does not do
+## 12. What appd deliberately does not do
 
-- **No daemon.** It's a frontend for systemd; unit files are the state.
+- **No daemon today.** It's a frontend for systemd; unit files are the state. A daemon is planned
+  as a mode of the same binary.
 - **`apply` does not start, stop, restart, or enable anything.** Those are separate commands, and
   the output always tells you which one is still pending.
 - **No log files.** journald handles storage, rotation and rate limiting. Apps that want
@@ -747,10 +748,10 @@ Exit codes: `0` success, `1` failure or drift/problems, so `diff` and `doctor` a
 ## 13. Cleanup
 
 ```bash
-sudo appctl remove sundial-worker
-sudo appctl remove sundial-api
+sudo appd remove sundial-worker
+sudo appd remove sundial-api
 sudo rm -rf /srv/sundial
 ```
 
 Both `remove` calls delete their unit, config, account and state directory. `/srv/sundial` is
-removed by hand because appctl never installed it.
+removed by hand because appd never installed it.

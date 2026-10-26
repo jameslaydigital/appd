@@ -1,4 +1,4 @@
-//! One JSON file per application, normally `/etc/appctl/<app>.json`.
+//! One JSON file per application, normally `/etc/appd/<app>.json`.
 
 use std::collections::BTreeMap;
 
@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::naming;
 
-/// Longest app name that still leaves room for the `appctl-` prefix inside Linux's
+/// Longest app name that still leaves room for the `appd-` prefix inside Linux's
 /// 32-character username limit.
 pub const MAX_APP_NAME_LEN: usize = 32 - naming::PREFIX.len();
 
@@ -23,7 +23,7 @@ pub struct Config {
     /// Defaults to the app's state directory.
     #[serde(default)]
     pub working_directory: Option<String>,
-    /// Defaults to a provisioned `appctl-<app>` account. `"root"` is allowed but must be
+    /// Defaults to a provisioned `appd-<app>` account. `"root"` is allowed but must be
     /// written down.
     #[serde(default)]
     pub user: Option<String>,
@@ -37,7 +37,7 @@ pub struct Config {
     /// Octal umask for the service's processes, e.g. `"0027"`.
     #[serde(default)]
     pub umask: Option<String>,
-    /// Command used by `appctl reload` / `systemctl reload`.
+    /// Command used by `appd reload` / `systemctl reload`.
     #[serde(default)]
     pub reload: Option<Vec<String>>,
     #[serde(default = "default_wanted_by")]
@@ -52,7 +52,7 @@ pub struct Config {
     pub permissions: Permissions,
 }
 
-/// Accepts either a single path (`"environment_file": "/etc/appctl/x.env"`) or an array.
+/// Accepts either a single path (`"environment_file": "/etc/appd/x.env"`) or an array.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum EnvironmentFiles {
@@ -86,7 +86,7 @@ pub struct Permissions {
     /// Disables `MemoryDenyWriteExecute`, for runtimes that JIT.
     pub executable_memory: bool,
     pub devices: Vec<String>,
-    /// Attaches an existing AppArmor profile by name. appctl never generates one.
+    /// Attaches an existing AppArmor profile by name. appd never generates one.
     pub apparmor: Option<String>,
 }
 
@@ -275,10 +275,11 @@ mod tests {
 
     #[test]
     fn rejects_bad_names() {
-        for name in ["", "Demo", "demo.app", "-demo", "demo-", "all", &"a".repeat(26)] {
+        for name in ["", "Demo", "demo.app", "-demo", "demo-", "all", &"a".repeat(28)] {
             assert!(validate_name(name).is_err(), "`{name}` should be rejected");
         }
         assert!(validate_name("goal-tracker-2").is_ok());
+        assert!(validate_name(&"a".repeat(27)).is_ok());
     }
 
     #[test]
@@ -339,19 +340,19 @@ mod tests {
     fn accepts_single_or_multiple_environment_files() {
         let one = Config::parse(
             "demo",
-            r#"{ "exec": "/bin/true", "environment_file": "/etc/appctl/demo.env" }"#,
+            r#"{ "exec": "/bin/true", "environment_file": "/etc/appd/demo.env" }"#,
         )
         .unwrap();
-        assert_eq!(one.environment_file.paths(), vec!["/etc/appctl/demo.env"]);
+        assert_eq!(one.environment_file.paths(), vec!["/etc/appd/demo.env"]);
 
         let many = Config::parse(
             "demo",
-            r#"{ "exec": "/bin/true", "environment_file": ["/etc/appctl/a.env", "/etc/appctl/b.env"] }"#,
+            r#"{ "exec": "/bin/true", "environment_file": ["/etc/appd/a.env", "/etc/appd/b.env"] }"#,
         )
         .unwrap();
         assert_eq!(
             many.environment_file.paths(),
-            vec!["/etc/appctl/a.env", "/etc/appctl/b.env"]
+            vec!["/etc/appd/a.env", "/etc/appd/b.env"]
         );
 
         assert!(

@@ -1,9 +1,9 @@
-//! Naming rules. Every unit, account and state directory appctl creates is derived from the
+//! Naming rules. Every unit, account and state directory appd creates is derived from the
 //! app name, and every one of them is namespaced so it cannot collide with a packaged unit.
 
-pub const PREFIX: &str = "appctl-";
+pub const PREFIX: &str = "appd-";
 
-/// Name of the systemd unit, e.g. `appctl-goal-tracker.service`.
+/// Name of the systemd unit, e.g. `appd-goal-tracker.service`.
 pub fn unit_name(app: &str) -> String {
     format!("{PREFIX}{app}.service")
 }
@@ -34,14 +34,14 @@ mod tests {
 
     #[test]
     fn derives_namespaced_names() {
-        assert_eq!(unit_name("goal-tracker"), "appctl-goal-tracker.service");
-        assert_eq!(default_user("goal-tracker"), "appctl-goal-tracker");
-        assert_eq!(state_directory("goal-tracker"), "/var/lib/appctl-goal-tracker");
+        assert_eq!(unit_name("goal-tracker"), "appd-goal-tracker.service");
+        assert_eq!(default_user("goal-tracker"), "appd-goal-tracker");
+        assert_eq!(state_directory("goal-tracker"), "/var/lib/appd-goal-tracker");
     }
 
     #[test]
     fn round_trips_unit_names() {
-        assert_eq!(app_from_unit_file("appctl-goal-tracker"), Some("goal-tracker"));
+        assert_eq!(app_from_unit_file("appd-goal-tracker"), Some("goal-tracker"));
         assert_eq!(app_from_unit_file("nginx"), None);
     }
 }

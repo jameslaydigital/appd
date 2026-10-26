@@ -1,4 +1,4 @@
-//! `appctl doctor`: read-only preflight. Reports problems and the command that fixes each one.
+//! `appd doctor`: read-only preflight. Reports problems and the command that fixes each one.
 
 use std::fs;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -30,7 +30,7 @@ pub fn run() -> Result<i32> {
     if !registry.dir.exists() {
         println!("config directory");
         println!(
-            "  ⚠ {} does not exist; run `appctl init`",
+            "  ⚠ {} does not exist; run `appd init`",
             registry.dir.display()
         );
         warnings += 1;
@@ -77,12 +77,12 @@ pub fn run() -> Result<i32> {
     for (app, path) in &orphans {
         println!("{app}");
         println!("  ! orphaned: {} has no config", path.display());
-        println!("      fix: appctl apply --prune");
+        println!("      fix: appd apply --prune");
     }
 
     if !Path::new("/run/systemd/journal/socket").exists() {
         println!("journald");
-        println!("  ✗ /run/systemd/journal/socket is missing; `appctl logs` will not work");
+        println!("  ✗ /run/systemd/journal/socket is missing; `appd logs` will not work");
         problems += 1;
     }
 
@@ -186,7 +186,7 @@ fn inspect(app: &registry::App, managing: bool) -> Vec<Finding> {
     if let Some(argv) = &app.config.reload {
         if !Path::new(&argv[0]).exists() {
             findings.push(Finding::Problem(
-                format!("reload command {} does not exist; `appctl reload` will fail", argv[0]),
+                format!("reload command {} does not exist; `appd reload` will fail", argv[0]),
                 None,
             ));
         }
@@ -197,14 +197,14 @@ fn inspect(app: &registry::App, managing: bool) -> Vec<Finding> {
         if managing && !systemd::user_exists(&user) {
             findings.push(Finding::Problem(
                 format!("service account `{user}` does not exist"),
-                Some(format!("appctl apply {}", app.name)),
+                Some(format!("appd apply {}", app.name)),
             ));
         }
     } else if !systemd::user_exists(&user) {
         findings.push(Finding::Problem(
             format!("user `{user}` does not exist; the unit will fail to start"),
             Some(
-                "create the account, or remove `user` so appctl provisions one".to_string(),
+                "create the account, or remove `user` so appd provisions one".to_string(),
             ),
         ));
     }
@@ -222,7 +222,7 @@ fn inspect(app: &registry::App, managing: bool) -> Vec<Finding> {
         if managing {
             findings.push(Finding::Warning(
                 format!("{unit_name} is not installed"),
-                Some(format!("appctl apply {}", app.name)),
+                Some(format!("appd apply {}", app.name)),
             ));
         }
     } else {
@@ -230,7 +230,7 @@ fn inspect(app: &registry::App, managing: bool) -> Vec<Finding> {
             Ok(existing) if existing != unit::render(&app.name, &app.config) => {
                 findings.push(Finding::Warning(
                     format!("{unit_name} differs from what the config generates"),
-                    Some(format!("appctl apply {}", app.name)),
+                    Some(format!("appd apply {}", app.name)),
                 ));
             }
             Ok(_) => {}
@@ -248,7 +248,7 @@ fn inspect(app: &registry::App, managing: bool) -> Vec<Finding> {
                 if !matches!(state, "enabled" | "enabled-runtime" | "static" | "alias") {
                     findings.push(Finding::Warning(
                         format!("{unit_name} is `{state}`, not enabled"),
-                        Some(format!("appctl enable {}", app.name)),
+                        Some(format!("appd enable {}", app.name)),
                     ));
                 }
             }

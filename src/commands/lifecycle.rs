@@ -65,7 +65,7 @@ pub fn run(verb: Verb, apps: &[String], yes: bool) -> Result<i32> {
     for app in &selected {
         if matches!(verb, Verb::Reload) && app.config.reload.is_none() {
             eprintln!(
-                "{}: no `reload` command configured; use `appctl restart {}` instead",
+                "{}: no `reload` command configured; use `appd restart {}` instead",
                 app.name, app.name
             );
             failed.push(app.name.clone());

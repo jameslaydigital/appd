@@ -1,12 +1,12 @@
 {
-  "description": "appctl hello world demo",
+  "description": "appd hello world demo",
   "exec": "/srv/hello-world/bin/hello",
   "args": ["--interval", "2"],
   "working_directory": "/srv/hello-world",
   "restart": "always",
   "reload": ["/bin/kill", "-HUP", "$MAINPID"],
   "environment": {
-    "GREETING": "hello from appctl"
+    "GREETING": "hello from appd"
   },
   "permissions": {
     "read": ["/srv/hello-world"]

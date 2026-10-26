@@ -41,14 +41,14 @@ impl Fixture {
     }
 
     fn unit(&self, app: &str) -> PathBuf {
-        self.unit_dir().join(format!("appctl-{app}.service"))
+        self.unit_dir().join(format!("appd-{app}.service"))
     }
 
     fn run(&self, args: &[&str]) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_appctl"))
+        Command::new(env!("CARGO_BIN_EXE_appd"))
             .args(args)
-            .env("APPCTL_CONFIG_DIR", self.config_dir())
-            .env("APPCTL_UNIT_DIR", self.unit_dir())
+            .env("APPD_CONFIG_DIR", self.config_dir())
+            .env("APPD_UNIT_DIR", self.unit_dir())
             .stdin(std::process::Stdio::null())
             .output()
             .unwrap()
@@ -76,7 +76,7 @@ fn apply_is_idempotent_and_writes_hardened_units() {
 
     let path = fixture.unit("demo");
     let unit = fs::read_to_string(&path).unwrap();
-    assert!(unit.contains("X-Appctl-Managed=1"));
+    assert!(unit.contains("X-Appd-Managed=1"));
     assert!(unit.contains("RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6"));
     assert!(unit.contains("NoNewPrivileges=yes"));
     assert_eq!(
@@ -148,7 +148,7 @@ fn apply_does_not_create_the_config_directory() {
         !fixture.config_dir().exists(),
         "creating the directory is init's job"
     );
-    assert!(stdout(&output).contains("appctl init"), "{}", stdout(&output));
+    assert!(stdout(&output).contains("appd init"), "{}", stdout(&output));
 }
 
 #[test]
@@ -158,7 +158,7 @@ fn doctor_reports_a_missing_config_directory() {
     let text = stdout(&output);
     assert!(text.contains("config directory"), "{text}");
     assert!(text.contains("does not exist"), "{text}");
-    assert!(text.contains("appctl init"), "{text}");
+    assert!(text.contains("appd init"), "{text}");
 }
 
 #[test]
@@ -219,12 +219,12 @@ fn doctor_reports_a_missing_exec_and_exits_non_zero() {
 fn environment_file_is_written_into_the_unit() {
     let fixture = Fixture::new(&[(
         "demo",
-        r#"{ "exec": "/bin/true", "environment_file": "/etc/appctl/demo.env" }"#,
+        r#"{ "exec": "/bin/true", "environment_file": "/etc/appd/demo.env" }"#,
     )]);
     assert!(fixture.run(&["apply", "all", "--yes"]).status.success());
 
     let unit = fs::read_to_string(fixture.unit("demo")).unwrap();
-    assert!(unit.contains("EnvironmentFile=/etc/appctl/demo.env\n"), "{unit}");
+    assert!(unit.contains("EnvironmentFile=/etc/appd/demo.env\n"), "{unit}");
 }
 
 #[test]
@@ -285,7 +285,7 @@ fn remove_refuses_to_delete_a_foreign_unit() {
     let output = fixture.run(&["remove", "demo", "--yes"]);
     assert!(!output.status.success());
     assert!(
-        stderr(&output).contains("not created by appctl"),
+        stderr(&output).contains("not created by appd"),
         "{}",
         stderr(&output)
     );
@@ -303,12 +303,12 @@ fn remove_rejects_an_unknown_app() {
 
 #[test]
 fn man_page_and_completions_render() {
-    let bin = env!("CARGO_BIN_EXE_appctl");
+    let bin = env!("CARGO_BIN_EXE_appd");
 
     let man = Command::new(bin).arg("man").output().unwrap();
     assert!(man.status.success());
     let text = String::from_utf8_lossy(&man.stdout);
-    assert!(text.contains(".TH appctl 1"), "{text}");
+    assert!(text.contains(".TH appd 1"), "{text}");
     assert!(text.contains("frontend for systemd"), "{text}");
 
     let bash = Command::new(bin)
@@ -317,7 +317,7 @@ fn man_page_and_completions_render() {
         .unwrap();
     assert!(bash.status.success());
     let text = String::from_utf8_lossy(&bash.stdout);
-    assert!(text.contains("_appctl()"), "{text}");
+    assert!(text.contains("_appd()"), "{text}");
     assert!(text.contains("apply"), "{text}");
 }
 
@@ -335,8 +335,8 @@ fn the_shipped_example_renders_completely() {
     for expected in [
         "ExecStart=/srv/hello-world/bin/hello --interval 2",
         "ExecReload=/bin/kill -HUP $MAINPID",
-        "Environment=GREETING=\"hello from appctl\"",
-        "StateDirectory=appctl-hello-world",
+        "Environment=GREETING=\"hello from appd\"",
+        "StateDirectory=appd-hello-world",
         "ReadOnlyPaths=/srv/hello-world",
         "WantedBy=multi-user.target",
     ] {

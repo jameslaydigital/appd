@@ -1,6 +1,6 @@
-//! `appctl remove`: uninstall an app — unit, config, provisioned account and state directory.
+//! `appd remove`: uninstall an app — unit, config, provisioned account and state directory.
 //!
-//! The binary the app runs is never touched: appctl did not install it, so it does not own it.
+//! The binary the app runs is never touched: appd did not install it, so it does not own it.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -27,13 +27,13 @@ pub fn run(app_name: &str, keep_user: bool, keep_state: bool, yes: bool) -> Resu
     let state_dir = naming::state_directory(&app.name);
     let provisions_user = app.config.provisions_user();
 
-    // Never delete a unit that appctl did not write, even if the config thinks it owns the name.
+    // Never delete a unit that appd did not write, even if the config thinks it owns the name.
     if unit_path.exists() {
         let existing = fs::read_to_string(&unit_path)
             .with_context(|| format!("cannot read {}", unit_path.display()))?;
         if !existing.contains(unit::MARKER) {
             bail!(
-                "refusing to delete {}: it was not created by appctl",
+                "refusing to delete {}: it was not created by appd",
                 unit_path.display()
             );
         }

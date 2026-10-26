@@ -227,7 +227,7 @@ impl Registry {
         }
     }
 
-    /// Units on disk that carry the appctl marker but whose app name we do not know. These are
+    /// Units on disk that carry the appd marker but whose app name we do not know. These are
     /// left behind when a config is renamed or deleted.
     pub fn orphaned_units(&self) -> Result<Vec<(String, PathBuf)>> {
         self.orphaned_units_in(&paths::unit_dir())
@@ -330,14 +330,14 @@ mod tests {
         )
         .unwrap();
         fs::write(
-            units.path().join("appctl-gone.service"),
+            units.path().join("appd-gone.service"),
             format!("[Service]\n{}", unit::MARKER),
         )
         .unwrap();
-        fs::write(units.path().join("appctl-kept.service"), "[Service]\n").unwrap();
+        fs::write(units.path().join("appd-kept.service"), "[Service]\n").unwrap();
         fs::write(units.path().join("unrelated.service"), "[Service]\n").unwrap();
         fs::write(
-            units.path().join("appctl-foreign.service"),
+            units.path().join("appd-foreign.service"),
             "[Service]\n# not ours\n",
         )
         .unwrap();

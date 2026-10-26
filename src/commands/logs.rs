@@ -1,4 +1,4 @@
-//! `appctl logs` / `error-logs`: journald behind flags you can remember.
+//! `appd logs` / `error-logs`: journald behind flags you can remember.
 
 use anyhow::{Result, anyhow};
 
@@ -61,7 +61,7 @@ pub fn run(args: &LogArgs, default_priority: Option<&str>) -> Result<i32> {
                 "journald records plain stdout and stderr at priority 6 (`info`), so an app has to"
             );
             eprintln!(
-                "tag a line with `<3>` to have it logged as `err`. Try `appctl logs {}`.",
+                "tag a line with `<3>` to have it logged as `err`. Try `appd logs {}`.",
                 args.app
             );
         }

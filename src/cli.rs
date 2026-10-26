@@ -2,10 +2,10 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "appctl",
+    name = "appd",
     version,
     about = "A thin, hardened frontend for systemd",
-    long_about = "Manages systemd units generated from JSON configs in /etc/appctl/. \
+    long_about = "Manages systemd units generated from JSON configs in /etc/appd/. \
                   Hardening is on by default; configs open only the permissions they need."
 )]
 pub struct Cli {

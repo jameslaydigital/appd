@@ -1,6 +1,6 @@
 //! The interactive view: app table, streaming journal, and the handful of keys you actually use.
 //!
-//! Everything here is read-only unless appctl runs as root; mutating keys explain themselves
+//! Everything here is read-only unless appd runs as root; mutating keys explain themselves
 //! instead of surfacing D-Bus errors.
 
 use std::collections::VecDeque;
@@ -135,7 +135,7 @@ impl Model {
             Ok(rows) => {
                 self.rows = rows;
                 if self.rows.is_empty() && self.filter.is_empty() {
-                    self.say("no apps configured in /etc/appctl", false);
+                    self.say("no apps configured in /etc/appd", false);
                 }
             }
             Err(err) => self.say(format!("{err:#}"), false),
@@ -260,7 +260,7 @@ impl Model {
         }
         let row = self.current().map(|row| row.name.clone()).unwrap_or_default();
         self.say(
-            format!("read-only: run `sudo appctl {verb} {row}` from a shell"),
+            format!("read-only: run `sudo appd {verb} {row}` from a shell"),
             false,
         );
         true
@@ -508,7 +508,7 @@ fn ui(frame: &mut Frame, model: &mut Model) {
 
 fn render_header(frame: &mut Frame, model: &Model, area: Rect) {
     let mut spans = vec![
-        Span::styled(" appctl ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(" appd ", Style::default().add_modifier(Modifier::BOLD)),
         Span::styled(
             format!("{} app{}", model.rows.len(), if model.rows.len() == 1 { "" } else { "s" }),
             Style::default().fg(Color::DarkGray),
@@ -744,7 +744,7 @@ mod tests {
         assert!(matches!(model.mode, Mode::Normal));
         let (message, ok, _) = model.toast().unwrap();
         assert!(!ok);
-        assert!(message.contains("sudo appctl restart demo"), "{message}");
+        assert!(message.contains("sudo appd restart demo"), "{message}");
     }
 
     #[test]
@@ -756,7 +756,7 @@ mod tests {
 
         let (message, ok, _) = model.toast().unwrap();
         assert!(!ok);
-        assert!(message.contains("sudo appctl start demo"), "{message}");
+        assert!(message.contains("sudo appd start demo"), "{message}");
     }
 
     #[test]

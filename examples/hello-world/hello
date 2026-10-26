@@ -1,14 +1,14 @@
 #!/bin/sh
-# appctl demonstration service.
+# appd demonstration service.
 #
 # Logs a heartbeat to stdout, writes a simulated problem to stderr every tenth beat,
-# and logs a line when it receives SIGHUP so `appctl reload` has something to show.
+# and logs a line when it receives SIGHUP so `appd reload` has something to show.
 
 set -u
 
 interval=5
 greeting=${GREETING:-hello}
-state_dir=${STATE_DIR:-/var/lib/appctl-hello-world}
+state_dir=${STATE_DIR:-/var/lib/appd-hello-world}
 
 usage() {
     echo "usage: hello [--interval SECONDS]"
@@ -53,7 +53,7 @@ while :; do
         echo "$beats" >"$beats_file" 2>/dev/null || true
     fi
 
-    # Every tenth beat looks like a failure in `appctl error-logs`. journald records
+    # Every tenth beat looks like a failure in `appd error-logs`. journald records
     # plain stderr at priority 6, so the line carries a syslog priority prefix: `<3>`
     # is "err", and journald strips it from the stored message.
     if [ $((beats % 10)) -eq 0 ]; then
