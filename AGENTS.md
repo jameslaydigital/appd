@@ -154,7 +154,9 @@ make dist                  # static musl tarball + checksum in target/dist/
 
 Built with Hallmark v1.1.0 (Long Document macrostructure; custom xterm-256 theme; IBM Plex Mono +
 Newsreader). `.hallmark/log.json` records the run. Design tokens live in `site/tokens.css`; all
-colors/fonts must go through those tokens. The palette canvas and copy buttons are the only JS.
+colors/fonts must go through those tokens. The live config→unit transform and the copy buttons are
+the only JS. `site/assets/site.js` mirrors `src/unit.rs`; change both together, and regenerate the
+static fallback unit in `site/index.html` from a real `appd apply` when the renderer changes.
 `site/404.html` uses `<base href="/appd/">` so assets resolve at arbitrary 404 paths. Deploy is
 `.github/workflows/pages.yml` with current action majors; Pages is configured for workflow builds.
 

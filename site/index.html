@@ -69,10 +69,12 @@ sudo "$(command -v appd)" install</code></pre>
           </div>
           <p class="note">No Rust on the host? <a href="https://github.com/jameslaydigital/appd/releases/latest">Take the static binary</a>. It is a single file; copy it, run <code>appd install</code>, and continue. <code>install</code> also creates <code>/etc/appd</code>.</p>
         </div>
-        <figure class="palette">
-          <canvas id="xterm-palette" width="512" height="512" aria-hidden="true"></canvas>
-          <figcaption>xterm-256 · 256 colours · the accent is 208, <code>#ff8700</code>.</figcaption>
-        </figure>
+        <dl class="targets" aria-label="Names and paths derived from the app name">
+          <div><dt>config</dt><dd>/etc/appd/sundial.json</dd></div>
+          <div><dt>unit</dt><dd>appd-sundial.service</dd></div>
+          <div><dt>account</dt><dd>appd-sundial</dd></div>
+          <div><dt>state</dt><dd>/var/lib/appd-sundial</dd></div>
+        </dl>
       </div>
     </section>
 
@@ -144,6 +146,147 @@ sudo appd start sundial</code></pre>
       <p class="note">`apply` synchronizes unit files. It never restarts a running service. `appd diff` shows what would change; `appd restart` is the follow-up.</p>
     </section>
 
+    <section aria-labelledby="transform">
+      <h2 id="transform">The transform</h2>
+      <p class="lede">Change the exceptions; watch the policy close around them. This is the quickstart config, rendered by the same rules as <code>src/unit.rs</code>.</p>
+
+      <div class="lab">
+        <div class="lab__head">
+          <label class="lab__name" for="lab-name">
+            <span class="lab__name-label">app name</span>
+            <span class="lab__name-input"><span aria-hidden="true">/etc/appd/</span><input id="lab-name" type="text" aria-label="App name" value="sundial" maxlength="27" size="8" spellcheck="false" autocomplete="off" autocapitalize="off">.json</span>
+          </label>
+          <p class="lab__status" id="lab-status" aria-live="polite">18 hardening · 1 exception · 41 lines</p>
+        </div>
+
+        <div class="lab__controls" role="group" aria-labelledby="lab-controls-label">
+          <p class="lab__legend" id="lab-controls-label">exceptions</p>
+
+          <label class="switch">
+            <input type="checkbox" role="switch" id="lab-network" checked>
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__text">
+              <span class="switch__name">network</span>
+              <span class="switch__hint">AF_INET, AF_INET6</span>
+            </span>
+          </label>
+
+          <label class="switch">
+            <input type="checkbox" role="switch" id="lab-write">
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__text">
+              <span class="switch__name">write a path</span>
+              <span class="switch__hint">ReadWritePaths</span>
+            </span>
+          </label>
+
+          <label class="switch">
+            <input type="checkbox" role="switch" id="lab-jit">
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__text">
+              <span class="switch__name">JIT memory</span>
+              <span class="switch__hint">drops MemoryDenyWriteExecute</span>
+            </span>
+          </label>
+
+          <label class="switch">
+            <input type="checkbox" role="switch" id="lab-reload">
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__text">
+              <span class="switch__name">reload</span>
+              <span class="switch__hint">ExecReload</span>
+            </span>
+          </label>
+
+          <label class="switch">
+            <input type="checkbox" role="switch" id="lab-secrets">
+            <span class="switch__track" aria-hidden="true"></span>
+            <span class="switch__text">
+              <span class="switch__name">secrets file</span>
+              <span class="switch__hint">EnvironmentFile</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="lab__panes">
+          <div class="code lab__pane">
+            <div class="code__bar">
+              <span class="code__label">json · editable</span>
+              <span class="lab__actions">
+                <button class="copy" type="button" id="lab-reset">Reset</button>
+                <button class="copy" type="button" data-copy="#lab-json" aria-label="Copy the config" aria-live="polite">Copy</button>
+              </span>
+            </div>
+            <textarea class="lab__json" id="lab-json" aria-label="JSON config" spellcheck="false" autocomplete="off" autocapitalize="off">{
+  "description": "Sundial notes API",
+  "exec": "/srv/sundial/bin/sundial-api",
+  "args": ["--bind", "127.0.0.1:8787"],
+  "working_directory": "/srv/sundial",
+  "restart": "on-failure",
+  "permissions": {
+    "network": true
+  }
+}</textarea>
+          </div>
+
+          <div class="code lab__pane">
+            <div class="code__bar">
+              <span class="code__label" id="lab-unit-name">appd-sundial.service</span>
+              <span class="lab__actions">
+                <button class="copy" type="button" id="lab-jump" aria-label="Jump to the permissions section of the unit">permissions ↓</button>
+                <button class="copy" type="button" data-copy="#lab-unit" aria-label="Copy the generated unit" aria-live="polite">Copy</button>
+              </span>
+            </div>
+            <pre class="lab__unit" id="lab-unit" aria-label="Generated systemd unit"><code>[Unit]
+Description=Sundial notes API
+X-Appd-Managed=1
+After=network-online.target
+
+[Service]
+Type=simple
+User=appd-sundial
+Group=appd-sundial
+WorkingDirectory=/srv/sundial
+StateDirectory=appd-sundial
+ExecStart=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+
+# hardening defaults
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectProc=invisible
+ProtectClock=yes
+ProtectHostname=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+# opened by permissions
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">Illustrative, and limited to fields appd actually renders. With network off, the unit still allows <code>AF_UNIX</code>; there is no wider directive to revoke.</p>
+      <noscript><p class="note">The switches need JavaScript. The JSON stays editable here, but the unit will not follow it until the script runs.</p></noscript>
+    </section>
+
     <section aria-labelledby="description">
       <h2 id="description">Description</h2>
       <p class="lede">A systemd unit is a small security policy with a command attached. appd makes the policy the part you write first.</p>
@@ -186,22 +329,7 @@ sudo appd start sundial</code></pre>
         </div>
       </dl>
 
-      <h3>What a unit looks like</h3>
-      <div class="code">
-        <div class="code__bar">
-          <span class="code__label">appd-sundial.service · excerpt</span>
-        </div>
-        <pre><code><span class="tok-key">User</span>=appd-sundial
-<span class="tok-key">StateDirectory</span>=appd-sundial
-<span class="tok-key">ExecStart</span>=/srv/sundial/bin/sundial-api --bind 127.0.0.1:8787
-<span class="tok-key">ProtectSystem</span>=strict
-<span class="tok-key">ProtectHome</span>=yes
-<span class="tok-key">PrivateDevices</span>=yes
-<span class="tok-key">NoNewPrivileges</span>=yes
-<span class="tok-key">RestrictAddressFamilies</span>=AF_UNIX AF_INET
-<span class="tok-key">ReadWritePaths</span>=/srv/sundial/public</code></pre>
-      </div>
-      <p class="note">Excerpt. The generated unit also sets <code>Restart=</code>, journal output, and the rest of the hardening set.</p>
+      <p>The <a href="#transform">live transform</a> above is the whole unit, not an excerpt: every hardening directive, every permission, and the install target.</p>
     </section>
 
     <section aria-labelledby="philosophy">
@@ -241,7 +369,7 @@ sudo appd start sundial</code></pre>
   <footer class="foot shell">
     <p>appd 0.2.7 · MIT · written in Rust, run by systemd. No telemetry.</p>
     <p><a href="https://github.com/jameslaydigital/appd">github.com/jameslaydigital/appd</a> · <a href="https://crates.io/crates/appd">crates.io/crates/appd</a> · <a href="https://github.com/jameslaydigital/appd/releases/latest">releases</a></p>
-    <p>Set in IBM Plex Mono and Newsreader. Palette sampled from xterm-256; the accent is colour 208.</p>
+    <p>Set in IBM Plex Mono and Newsreader. The accent is xterm colour 208.</p>
   </footer>
 </body>
 </html>

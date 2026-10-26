@@ -28,14 +28,14 @@
   --color-accent-ink: oklch(20% 0.012 60);
   --color-focus: oklch(62% 0.22 55);
 
-  /* Terminal surface for code and the palette. */
+  /* Terminal surface for code and the live unit. */
   --color-term: oklch(17% 0.012 250);
   --color-term-2: oklch(21% 0.012 250);
   --color-term-ink: oklch(92% 0.008 250);
   --color-term-muted: oklch(70% 0.01 250);
   --color-term-rule: oklch(30% 0.012 250);
 
-  /* xterm ANSI base 16, sampled for code and the palette fallback. */
+  /* xterm ANSI base 16, sampled for code. */
   --ansi-black: oklch(24% 0.01 250);
   --ansi-red: oklch(63% 0.2 28);
   --ansi-green: oklch(76% 0.16 145);
