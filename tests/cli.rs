@@ -96,13 +96,13 @@ fn apply_is_idempotent_and_writes_hardened_units() {
 }
 
 #[test]
-fn apply_creates_the_config_directory() {
+fn init_creates_the_config_directory_and_is_idempotent() {
     let fixture = Fixture::bare();
     assert!(!fixture.config_dir().exists());
 
-    let output = fixture.run(&["apply", "all", "--yes"]);
-    assert!(output.status.success(), "{}", stderr(&output));
-    assert!(stdout(&output).contains("Created"), "{}", stdout(&output));
+    let first = fixture.run(&["init"]);
+    assert!(first.status.success(), "{}", stderr(&first));
+    assert!(stdout(&first).contains("Created"), "{}", stdout(&first));
     assert!(fixture.config_dir().is_dir());
     assert_eq!(
         fs::metadata(fixture.config_dir())
@@ -113,6 +113,42 @@ fn apply_creates_the_config_directory() {
         0o755,
         "the directory must be listable so non-root status works"
     );
+
+    let second = fixture.run(&["init"]);
+    assert!(second.status.success(), "{}", stderr(&second));
+    assert!(
+        stdout(&second).contains("already exists"),
+        "{}",
+        stdout(&second)
+    );
+}
+
+#[test]
+fn init_warns_when_others_cannot_list_the_directory() {
+    let fixture = Fixture::bare();
+    fs::create_dir_all(fixture.config_dir()).unwrap();
+    fs::set_permissions(fixture.config_dir(), fs::Permissions::from_mode(0o750)).unwrap();
+
+    let output = fixture.run(&["init"]);
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(
+        stdout(&output).contains("chmod 755"),
+        "{}",
+        stdout(&output)
+    );
+}
+
+#[test]
+fn apply_does_not_create_the_config_directory() {
+    let fixture = Fixture::bare();
+
+    let output = fixture.run(&["apply", "all", "--yes"]);
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(
+        !fixture.config_dir().exists(),
+        "creating the directory is init's job"
+    );
+    assert!(stdout(&output).contains("appctl init"), "{}", stdout(&output));
 }
 
 #[test]
@@ -122,6 +158,7 @@ fn doctor_reports_a_missing_config_directory() {
     let text = stdout(&output);
     assert!(text.contains("config directory"), "{text}");
     assert!(text.contains("does not exist"), "{text}");
+    assert!(text.contains("appctl init"), "{text}");
 }
 
 #[test]

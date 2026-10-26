@@ -38,14 +38,7 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
         );
     }
 
-    // appctl owns this directory; create it so a fresh install has somewhere to put configs.
-    if paths::ensure_config_dir()? {
-        println!(
-            "Created {} (one <app>.json per app).",
-            paths::config_dir().display()
-        );
-    }
-
+    // `apply` never creates the config directory: `init` owns that decision.
     let registry = registry::load()?;
     // All-or-nothing: never write half a configuration.
     registry.require_sound()?;
@@ -59,7 +52,14 @@ pub fn run(apps: &[String], prune: bool, yes: bool) -> Result<i32> {
 
     let orphans = registry.orphaned_units()?;
     if selected.is_empty() && orphans.is_empty() {
-        println!("no configs in {}", registry.dir.display());
+        if registry.dir.exists() {
+            println!("no configs in {}", registry.dir.display());
+        } else {
+            println!(
+                "no config directory at {}; run `appctl init` first",
+                registry.dir.display()
+            );
+        }
         return Ok(0);
     }
 

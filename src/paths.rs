@@ -20,7 +20,7 @@ pub fn config_dir() -> PathBuf {
     overridable("APPCTL_CONFIG_DIR", DEFAULT_CONFIG_DIR)
 }
 
-/// Create the config directory if it is missing. Only write commands call this; `status`,
+/// Create the config directory if it is missing. Only `appctl init` calls this; `apply`, `status`,
 /// `logs` and `doctor` never touch the filesystem.
 ///
 /// Returns true when the directory was created. Existing directories are left exactly as they
@@ -47,4 +47,9 @@ pub fn unit_dir() -> PathBuf {
 /// skips the root check and `daemon-reload`, which is what makes the tests possible.
 pub fn manages_system_units() -> bool {
     unit_dir() == PathBuf::from(DEFAULT_UNIT_DIR)
+}
+
+/// True when the config directory is the real `/etc/appctl` rather than a test override.
+pub fn manages_system_config() -> bool {
+    config_dir() == PathBuf::from(DEFAULT_CONFIG_DIR)
 }

@@ -30,7 +30,7 @@ pub fn run() -> Result<i32> {
     if !registry.dir.exists() {
         println!("config directory");
         println!(
-            "  ⚠ {} does not exist; `appctl apply` creates it",
+            "  ⚠ {} does not exist; run `appctl init`",
             registry.dir.display()
         );
         warnings += 1;

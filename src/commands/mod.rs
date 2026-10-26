@@ -2,6 +2,7 @@ pub mod apply;
 pub mod diff;
 pub mod doctor;
 pub mod generate;
+pub mod init;
 pub mod lifecycle;
 pub mod logs;
 pub mod remove;
@@ -17,6 +18,7 @@ use crate::cli::{Cli, Command};
 /// the command outright.
 pub fn run(cli: Cli) -> Result<i32> {
     match cli.command {
+        Some(Command::Init) => init::run(),
         Some(Command::Apply { apps, prune }) => apply::run(&apps, prune, cli.yes),
         Some(Command::Status { apps }) => status::run(&apps),
         Some(Command::Diff { apps }) => diff::run(&apps),

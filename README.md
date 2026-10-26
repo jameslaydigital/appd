@@ -91,14 +91,15 @@ Repeat with `completions zsh` and `completions fish` for the other shells, writi
 `…/zsh/site-functions/_appctl` and `…/fish/vendor_completions.d/appctl.fish` respectively. If the
 tarball already ships completion files, install those instead.
 
-`apply` creates `/etc/appctl` (mode `0755`) if it is missing, so none of these installation routes
-need to. An existing directory is left alone, including its permissions.
+`appctl init` creates `/etc/appctl` (mode `0755`) and is idempotent, so none of these installation
+routes need to. `apply` never creates the directory; if it is missing, it tells you to run `init`.
 
 ### Verify
 
 ```bash
 appctl --version
 systemctl is-system-running      # expect "running" or "degraded"
+sudo appctl init                 # create /etc/appctl; safe to re-run
 sudo appctl doctor               # "0 apps checked" on a fresh install
 ```
 
@@ -168,6 +169,7 @@ definitions, so they cannot drift from the CLI.
 ## Usage
 
 ```bash
+appctl init                         # create /etc/appctl, then exit
 appctl apply all                    # render /etc/appctl/*.json into systemd units, then daemon-reload
 appctl apply all --prune            # also stop, disable, and delete managed units whose config is gone
 appctl apply goal-tracker           # same, for a single app
@@ -274,9 +276,8 @@ appctl writes `appctl-<app>.service`, so it never overwrites the hand-written un
 Both units can exist at once, which also means both can try to bind the same port. The safe order:
 
 1. Write `/etc/appctl/<app>.json` and run `sudo appctl doctor` — it reports missing paths, env files
-   and executables before anything is installed. If `/etc/appctl` doesn't exist yet, a bare
-   `sudo appctl apply` creates it (and installs nothing), or use
-   `sudo install -d -m 0755 /etc/appctl`.
+   and executables before anything is installed. If `/etc/appctl` doesn't exist yet, run
+   `sudo appctl init` first.
 2. `sudo appctl apply <app>` — writes the new unit and reloads systemd; starts nothing.
 3. `sudo systemctl disable --now <app>.service` — stop the incumbent.
 4. `sudo appctl enable <app> && sudo appctl start <app>`.
@@ -312,7 +313,7 @@ There is no global switch to turn hardening off; the only opt-outs are the speci
 ## Configuration
 
 One file per application, named after the app: `/etc/appctl/goal-tracker.json` becomes
-`appctl-goal-tracker.service`.
+`appctl-goal-tracker.service`. `appctl init` creates the directory if it doesn't exist.
 
 App names are capped at 25 characters, because the derived account `appctl-<app>` has to fit
 Linux's 32-character username limit. `apply` rejects longer names before doing anything.

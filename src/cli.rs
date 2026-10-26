@@ -19,6 +19,9 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Create the config directory and print the next steps.
+    Init,
+
     /// Render configs into systemd units, install them, and reload systemd.
     Apply {
         /// App names, or `all`. Defaults to all.

@@ -77,7 +77,7 @@ its ownership fixed after `apply` creates the account.
 ## 2. The first config
 
 ```bash
-sudo install -d -m 0755 /etc/appctl
+sudo appctl init
 sudo tee /etc/appctl/sundial-api.json >/dev/null <<'EOF'
 {
   "description": "Sundial notes API",
@@ -712,6 +712,7 @@ left behind by a deleted config, it shows up as an orphan and is cleaned with
 
 | Command | Does |
 | --- | --- |
+| `appctl init` | create `/etc/appctl` and print next steps; idempotent |
 | `appctl apply [APP…\|all] [--prune] [--yes]` | render units, install, `daemon-reload` |
 | `appctl diff [APP…\|all]` | show drift; exit 1 if any |
 | `appctl doctor` | preflight / diagnose; exit 1 on problems |
